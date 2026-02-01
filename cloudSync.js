@@ -36,7 +36,7 @@ class CloudSync {
     }
 
     async configureClerk() {
-        const publishableKey = 'pk_test_...'; // REPLACE WITH YOUR KEY or load from env
+        const publishableKey = 'pk_test_cmlnaHQtcXVhZ2dhLTMwLmNsZXJrLmFjY291bnRzLmRldiQ'; // REPLACE WITH YOUR KEY or load from env
         // Em um ambiente real, isso viria de uma config injetada
         
         if (!window.Clerk) return;
