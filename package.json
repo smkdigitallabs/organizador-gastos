@@ -1,0 +1,35 @@
+{
+  "name": "organizador-de-gastos",
+  "version": "1.0.0",
+  "description": "Aplicativo para organizar gastos pessoais",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "build": {
+    "appId": "com.organizador.gastos",
+    "productName": "Organizador de Gastos",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    }
+  },
+  "dependencies": {
+    "@clerk/clerk-js": "^5.122.0",
+    "@vercel/postgres": "^0.10.0",
+    "dotenv": "^17.2.3"
+  }
+}

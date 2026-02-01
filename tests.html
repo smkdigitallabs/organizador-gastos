@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testes - Organizador de Gastos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="side-nav">
+        <a href="index.html" title="Página Inicial"><i class="fas fa-home"></i></a>
+        <a href="details.html" title="Detalhes"><i class="fas fa-list"></i></a>
+        <a href="expenses.html" title="Despesas"><i class="fas fa-dollar-sign expense-icon"></i></a>
+        <a href="wallet.html" title="Carteira"><i class="fas fa-folder"></i></a>
+        <a href="income.html" title="Receitas"><i class="fas fa-dollar-sign income-icon"></i></a>
+        <a href="#" id="export-data-btn" title="Exportar Dados" onclick="dataManager.exportBackup()"><i class="fas fa-download"></i></a>
+        <a href="#" id="import-data-btn" title="Importar Dados" onclick="document.getElementById('importFile').click()"><i class="fas fa-upload"></i></a>
+        <a href="#" id="clear-data-btn" title="Apagar Todos os Dados" onclick="dataManager.clearAllData()"><i class="fas fa-trash-alt"></i></a>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="dataManager.loadFromFileInput(this.files[0])">
+    
+        <!-- Adicionar seção de histórico de auto-saves -->
+        <div class="auto-save-manager">
+            <a href="#" id="auto-save-history-btn" title="Histórico de Auto-Saves" onclick="toggleAutoSaveHistory()"><i class="fas fa-history"></i></a>
+            <div id="auto-save-panel" class="auto-save-panel" style="display: none;">
+                <h3>Histórico de Auto-Saves</h3>
+                <div id="auto-save-versions"></div>
+                <button onclick="loadAutoSaveVersions()" class="btn-small">Carregar Versões</button>
+                <button onclick="dataManager.clearAutoSaveHistory()" class="btn-small btn-danger">Limpar Histórico</button>
+            </div>
+        </div>
+    </nav>
+    <div class="main-content">
+        <h1>Ambiente de Testes</h1>
+        <p>Esta página executa automaticamente os testes de validação do sistema.</p>
+        <div id="test-output-container"></div>
+    </div>
+    <script src="safeStorage.js"></script>
+    <script src="eventBus.js"></script>
+    <script src="asyncErrorHandler.js"></script>
+    <script src="globalFunctionChecker.js"></script>
+    <script src="smartAutoSave.js"></script>
+    <script src="notificationSystem.js"></script>
+    <script src="updateDashboardCards.js"></script>
+    <script src="dataManager.js"></script>
+    <script src="aiService.js"></script>
+    <script src="script.js"></script>
+    <script src="tests.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carteira - Organizador de Gastos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="side-nav">
+        <a href="index.html" title="Página Inicial"><i class="fas fa-home"></i></a>
+        <!-- <a href="settings.html" title="Configurações"><i class="fas fa-cog"></i></a> -->
+        <a href="details.html" title="Detalhes"><i class="fas fa-list"></i></a>
+        <a href="expenses.html" title="Despesas"><i class="fas fa-dollar-sign expense-icon"></i></a>
+        <a href="wallet.html" class="active" title="Carteira"><i class="fas fa-folder"></i></a>
+        <a href="income.html" title="Receitas"><i class="fas fa-dollar-sign income-icon"></i></a>
+        <a href="#" id="export-data-btn" title="Exportar Dados" onclick="dataManager.exportBackup()"><i class="fas fa-download"></i></a>
+        <a href="#" id="import-data-btn" title="Importar Dados" onclick="document.getElementById('importFile').click()"><i class="fas fa-upload"></i></a>
+        <a href="#" onclick="dataManager.clearAllData()" class="trash-button" title="Limpar Dados"><i class="fas fa-trash-alt"></i></a>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="dataManager.loadFromFileInput(this.files[0])">
+    
+        <!-- Adicionar seção de histórico de auto-saves -->
+        <div class="auto-save-manager">
+            <a href="#" id="auto-save-history-btn" title="Histórico de Auto-Saves" onclick="toggleAutoSaveHistory()"><i class="fas fa-history"></i></a>
+            <div id="auto-save-panel" class="auto-save-panel" style="display: none;">
+                <h3>Histórico de Auto-Saves</h3>
+                <div id="auto-save-versions"></div>
+                <button onclick="loadAutoSaveVersions()" class="btn-small">Carregar Versões</button>
+                <button onclick="dataManager.clearAutoSaveHistory()" class="btn-small btn-danger">Limpar Histórico</button>
+            </div>
+        </div>
+    </nav>
+    <div class="main-content">
+        <div class="wallet-form">
+            <form id="cardForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cardName">Nome do Cartão:</label>
+                        <input type="text" id="cardName" required placeholder="Ex: Nubank">
+                    </div>
+                    <div class="form-group">
+                        <label for="cardType">Tipo:</label>
+                        <select id="cardType" required>
+                            <option value="">Selecione</option>
+                            <option value="credito">Crédito</option>
+                            <option value="debito">Débito</option>
+                            <option value="multiplo">Múltiplo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardLimit">Limite (R$):</label>
+                        <input type="number" id="cardLimit" step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="closingDay">Fechamento:</label>
+                        <input type="number" id="closingDay" min="1" max="31" placeholder="Dia">
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDay">Vencimento:</label>
+                        <input type="number" id="dueDay" min="1" max="31" placeholder="Dia">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn-submit">Adicionar Cartão</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="cards-list">
+            <h2><i class="fas fa-credit-card"></i> Meus Cartões</h2>
+            <div id="cardsList"></div>
+        </div>
+    </div>
+    
+    <!-- Adicionar antes do fechamento do body -->
+    <script src="dataManager.js"></script>
+    <script src="script.js"></script>
+    <script src="wallet.js"></script>
+</body>
+</html>

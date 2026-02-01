@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de Gastos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="side-nav">
+        <a href="index.html" class="active" title="Página Inicial"><i class="fas fa-home"></i></a>
+        <a href="details.html" title="Detalhes"><i class="fas fa-list"></i></a>
+        <a href="expenses.html" title="Despesas"><i class="fas fa-dollar-sign expense-icon"></i></a>
+        <a href="wallet.html" title="Carteira"><i class="fas fa-folder"></i></a>
+        <a href="income.html" title="Receitas"><i class="fas fa-dollar-sign income-icon"></i></a>
+        <a href="#" id="export-data-btn" title="Exportar Dados" onclick="dataManager.exportBackup()"><i class="fas fa-download"></i></a>
+        <a href="#" id="import-data-btn" title="Importar Dados" onclick="document.getElementById('importFile').click()"><i class="fas fa-upload"></i></a>
+        <a href="#" id="clear-data-btn" title="Apagar Todos os Dados" onclick="dataManager.clearAllData()"><i class="fas fa-trash-alt"></i></a>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="dataManager.loadFromFileInput(this.files[0])">
+    
+        <!-- Adicionar seção de histórico de auto-saves -->
+        <div class="auto-save-manager">
+            <a href="#" id="auto-save-history-btn" title="Histórico de Auto-Saves" onclick="toggleAutoSaveHistory()"><i class="fas fa-history"></i></a>
+            <div id="auto-save-panel" class="auto-save-panel" style="display: none;">
+                <h3>Histórico de Auto-Saves</h3>
+                <div id="auto-save-versions"></div>
+                <button onclick="loadAutoSaveVersions()" class="btn-small">Carregar Versões</button>
+                <button onclick="dataManager.clearAutoSaveHistory()" class="btn-small btn-danger">Limpar Histórico</button>
+            </div>
+        </div>
+    </nav>
+    <div class="main-content">
+        <div class="auth-header" style="display: flex; justify-content: flex-end; padding: 10px;">
+            <div id="auth-container">
+                <button id="sign-in-btn" class="btn-primary">Entrar / Criar Conta</button>
+                <div id="user-profile" style="display: none; align-items: center; gap: 10px;">
+                    <span id="user-email"></span>
+                    <button id="sign-out-btn" class="btn-small btn-danger">Sair</button>
+                    <div id="sync-status" title="Status da Sincronização" style="width: 10px; height: 10px; border-radius: 50%; background-color: gray;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="month-selector">
+            <i class="fas fa-calendar"></i>
+            <select id="month">
+                <option value="1">Janeiro</option>
+                <!-- Outros meses aqui -->
+            </select>
+            <input type="number" id="year" value="2025">
+        </div>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h3>GANHEI</h3>
+                <div class="amount"></div>
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="card">
+                <h3>GASTEI</h3>
+                <div class="amount"></div>
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="card">
+                <h3>GASTEI NO DÉBITO</h3>
+                <div class="amount"></div>
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="card">
+                <h3>GASTEI NO CRÉDITO</h3>
+                <div class="amount"></div>
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="card">
+                <h3>INVESTI</h3>
+                <div class="amount"></div>
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="card">
+                <h3>GUARDEI</h3>
+                <div class="amount"></div>
+                <i class="fas fa-piggy-bank"></i>
+            </div>
+        </div>
+
+        <div class="fixed-expenses">
+            <h3>Gastos Fixos</h3>
+            <div class="progress-bar">
+                <div class="progress" style="width: 0%;">0%</div>
+            </div>
+            <div class="expenses-list" id="fixed-expenses-list">
+                <!-- Os itens serão inseridos dinamicamente pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Nova seção para despesas variáveis -->
+        <div class="variable-expenses">
+            <h3>Despesas Variáveis</h3>
+            <div class="progress-bar">
+                <div class="progress" id="variable-progress" style="width: 0%;">0%</div>
+            </div>
+            <div class="expenses-list" id="variable-expenses-list">
+                <!-- Os itens serão inseridos dinamicamente pelo JavaScript -->
+            </div>
+        </div>
+
+        <div class="dashboard-bottom">
+            <div class="monthly-expenses-chart card">
+                <h3>GASTOS MENSAIS</h3>
+                <div class="chart-container">
+                    <div class="chart-bars">
+                        <!-- Os elementos chart-bar serão gerados dinamicamente pelo JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-recommendations card">
+                <h3>Recomendações de IA</h3>
+                <div class="recommendations-content" id="ai-recommendations">
+                    <div class="loading-recommendations">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Analisando seus dados...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="safeStorage.js"></script>
+    <script src="eventBus.js"></script>
+    <script src="asyncErrorHandler.js"></script>
+    <script src="globalFunctionChecker.js"></script>
+    <script src="smartAutoSave.js"></script>
+    <script src="notificationSystem.js"></script>
+    <script src="updateDashboardCards.js"></script>
+<script src="dataManager.js"></script>
+    <script src="aiService.js"></script>
+    <script src="cloudSync.js"></script>
+    <script src="script.js"></script>
+<script src="tests.js"></script>
+</body>
+</html>
