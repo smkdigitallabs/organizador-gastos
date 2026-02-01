@@ -29,7 +29,9 @@
   },
   "dependencies": {
     "@clerk/clerk-js": "^5.122.0",
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@vercel/postgres": "^0.10.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "pg": "^8.18.0"
   }
 }

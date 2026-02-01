@@ -1,4 +1,7 @@
 const db = require('../lib/db');
+const { Clerk } = require('@clerk/clerk-sdk-node');
+
+const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 module.exports = async (req, res) => {
   // Configuração CORS
@@ -15,8 +18,34 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Obter ID do usuário (em produção, validar token JWT do Clerk)
-  const userId = req.headers['user-id'];
+  // Autenticação via Clerk
+  let userId;
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Fallback temporário para desenvolvimento/teste se necessário, 
+      // mas idealmente bloqueamos.
+      // throw new Error('No token provided');
+      
+      // Se não houver token, verificar se há User-Id para compatibilidade legada (inseguro)
+      // TODO: Remover suporte a User-Id header puro em produção
+      if (req.headers['user-id']) {
+          console.warn('Using insecure User-Id header');
+          userId = req.headers['user-id'];
+      } else {
+          throw new Error('Unauthorized');
+      }
+    } else {
+        const token = authHeader.split(' ')[1];
+        // Verificar token
+        // Nota: verifyToken valida a assinatura e expiração
+        const decoded = await clerk.verifyToken(token);
+        userId = decoded.sub;
+    }
+  } catch (error) {
+    console.error('Auth Error:', error);
+    return res.status(401).json({ error: 'Unauthorized', details: error.message });
+  }
 
   if (!userId) {
     return res.status(401).json({ error: 'User ID required' });
