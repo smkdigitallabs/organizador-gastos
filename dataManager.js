@@ -16,6 +16,7 @@ export class DataManager {
         this.AUTO_SAVE_INTERVAL = 5000; // 5 segundos (será otimizado)
         this.lastDataHash = null;
         this.maxAutoSaveVersions = 20; // Default max versions
+        this.userId = null; // User ID for multi-user support
         
         // Verificar se SafeStorage está disponível
         if (!safeStorage) {
@@ -31,6 +32,65 @@ export class DataManager {
         // Configurar auto-save e carregar dados
         // this.setupAutoSave(); // Auto-save agora é gerenciado externamente pelo SmartAutoSave
         this.loadInitialData();
+    }
+
+    /**
+     * Define o ID do usuário atual para isolamento de dados
+     * @param {string|null} userId 
+     */
+    setUserId(userId) {
+        this.userId = userId;
+        console.log(`[DATA MANAGER]: Contexto de usuário alterado para: ${userId || 'Convidado'}`);
+        this.loadInitialData(); // Recarregar dados do novo contexto
+        this.notifyDataChange('all');
+    }
+
+    /**
+     * Obtém a chave de armazenamento correta baseada no usuário logado
+     * @param {string} key 
+     * @returns {string}
+     */
+    getStorageKey(key) {
+        if (this.userId) {
+            return `user_${this.userId}_${key}`;
+        }
+        return key;
+    }
+
+    /**
+     * Salva dados remotos (da nuvem) no armazenamento local
+     * @param {Object} data 
+     */
+    saveRemoteData(data) {
+        try {
+            // Mapeamento dos campos da API para chaves locais
+            if (data.expenses) this.saveExpenses(data.expenses);
+            if (data.incomes) this.saveIncomes(data.incomes); // API retorna 'incomes', local usa 'incomeData' mas o saveIncomes lida com isso
+            if (data.cards) this.saveCards(data.cards);
+            
+            if (data.expense_categories) this.saveExpenseCategories(data.expense_categories);
+            if (data.income_categories) this.saveIncomeCategories(data.income_categories);
+            
+            if (data.achievements) {
+                const key = this.getStorageKey('achievements');
+                this.useFallback ? 
+                    localStorage.setItem(key, JSON.stringify(data.achievements)) :
+                    safeStorage.setJSON(key, data.achievements);
+            }
+            
+            if (data.monthly_goal) {
+                const key = this.getStorageKey('monthlyExpenseGoal');
+                this.useFallback ? 
+                    localStorage.setItem(key, data.monthly_goal) :
+                    safeStorage.setItem(key, data.monthly_goal);
+            }
+            
+            console.log('[DATA MANAGER]: Dados remotos salvos com sucesso');
+            return true;
+        } catch (error) {
+            console.error('[DATA MANAGER]: Erro ao salvar dados remotos:', error);
+            return false;
+        }
     }
 
     /**
@@ -87,76 +147,86 @@ export class DataManager {
 
     // Métodos de acesso granular (Repository Pattern)
     getExpenses() {
+        const key = this.getStorageKey('expensesData');
         return this.useFallback ? 
-            JSON.parse(localStorage.getItem('expensesData') || '[]') : 
-            safeStorage.getJSON('expensesData', []);
+            JSON.parse(localStorage.getItem(key) || '[]') : 
+            safeStorage.getJSON(key, []);
     }
 
     saveExpenses(expenses) {
+        const key = this.getStorageKey('expensesData');
         if (this.useFallback) {
-            localStorage.setItem('expensesData', JSON.stringify(expenses));
+            localStorage.setItem(key, JSON.stringify(expenses));
         } else {
-            safeStorage.setJSON('expensesData', expenses);
+            safeStorage.setJSON(key, expenses);
         }
         this.notifyDataChange('expenses');
     }
 
     getIncomes() {
+        const key = this.getStorageKey('incomeData');
         return this.useFallback ? 
-            JSON.parse(localStorage.getItem('incomeData') || '[]') : 
-            safeStorage.getJSON('incomeData', []);
+            JSON.parse(localStorage.getItem(key) || '[]') : 
+            safeStorage.getJSON(key, []);
     }
 
     saveIncomes(incomes) {
+        const key = this.getStorageKey('incomeData');
         if (this.useFallback) {
-            localStorage.setItem('incomeData', JSON.stringify(incomes));
+            localStorage.setItem(key, JSON.stringify(incomes));
         } else {
-            safeStorage.setJSON('incomeData', incomes);
+            safeStorage.setJSON(key, incomes);
         }
         this.notifyDataChange('income');
     }
 
     getCards() {
+        const key = this.getStorageKey('cards');
         return this.useFallback ? 
-            JSON.parse(localStorage.getItem('cards') || '[]') : 
-            safeStorage.getJSON('cards', []);
+            JSON.parse(localStorage.getItem(key) || '[]') : 
+            safeStorage.getJSON(key, []);
     }
 
     saveCards(cards) {
+        const key = this.getStorageKey('cards');
         if (this.useFallback) {
-            localStorage.setItem('cards', JSON.stringify(cards));
+            localStorage.setItem(key, JSON.stringify(cards));
         } else {
-            safeStorage.setJSON('cards', cards);
+            safeStorage.setJSON(key, cards);
         }
         this.notifyDataChange('cards');
     }
 
     getExpenseCategories() {
+        const key = this.getStorageKey('expense-categories');
         return this.useFallback ? 
-            JSON.parse(localStorage.getItem('expense-categories') || '[]') : 
-            safeStorage.getJSON('expense-categories', []);
+            JSON.parse(localStorage.getItem(key) || '[]') : 
+            safeStorage.getJSON(key, []);
     }
 
     saveExpenseCategories(categories) {
+        const key = this.getStorageKey('expense-categories');
         if (this.useFallback) {
-            localStorage.setItem('expense-categories', JSON.stringify(categories));
+            localStorage.setItem(key, JSON.stringify(categories));
         } else {
-            safeStorage.setJSON('expense-categories', categories);
+            safeStorage.setJSON(key, categories);
         }
         this.notifyDataChange('expense-categories');
     }
 
     getIncomeCategories() {
+        const key = this.getStorageKey('income-categories');
         return this.useFallback ? 
-            JSON.parse(localStorage.getItem('income-categories') || '[]') : 
-            safeStorage.getJSON('income-categories', []);
+            JSON.parse(localStorage.getItem(key) || '[]') : 
+            safeStorage.getJSON(key, []);
     }
 
     saveIncomeCategories(categories) {
+        const key = this.getStorageKey('income-categories');
         if (this.useFallback) {
-            localStorage.setItem('income-categories', JSON.stringify(categories));
+            localStorage.setItem(key, JSON.stringify(categories));
         } else {
-            safeStorage.setJSON('income-categories', categories);
+            safeStorage.setJSON(key, categories);
         }
         this.notifyDataChange('income-categories');
     }
@@ -207,29 +277,19 @@ export class DataManager {
     saveToFile() {
         try {
             const data = {
-                expensesData: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('expensesData') || '[]') : 
-                    safeStorage.getJSON('expensesData', []),
-                incomeData: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('incomeData') || '[]') : 
-                    safeStorage.getJSON('incomeData', []),
-                cards: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('cards') || '[]') : 
-                    safeStorage.getJSON('cards', []),
+                expensesData: this.getExpenses(),
+                incomeData: this.getIncomes(),
+                cards: this.getCards(),
                 categories: {
-                    income: this.useFallback ? 
-                        JSON.parse(localStorage.getItem('income-categories') || '[]') : 
-                        safeStorage.getJSON('income-categories', []),
-                    expense: this.useFallback ? 
-                        JSON.parse(localStorage.getItem('expense-categories') || '[]') : 
-                        safeStorage.getJSON('expense-categories', [])
+                    income: this.getIncomeCategories(),
+                    expense: this.getExpenseCategories()
                 },
                 achievements: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('achievements') || '[]') : 
-                    safeStorage.getJSON('achievements', []),
+                    JSON.parse(localStorage.getItem(this.getStorageKey('achievements')) || '[]') : 
+                    safeStorage.getJSON(this.getStorageKey('achievements'), []),
                 monthlyGoal: this.useFallback ? 
-                    localStorage.getItem('monthlyExpenseGoal') : 
-                    safeStorage.getItem('monthlyExpenseGoal'),
+                    localStorage.getItem(this.getStorageKey('monthlyExpenseGoal')) : 
+                    safeStorage.getItem(this.getStorageKey('monthlyExpenseGoal')),
                 lastSaved: new Date().toISOString(),
                 version: this.CURRENT_DATA_VERSION
             };
@@ -319,24 +379,17 @@ export class DataManager {
     restoreDataSafely(data) {
         try {
             const operations = [
-                () => this.useFallback ? 
-                    localStorage.setItem('expensesData', JSON.stringify(data.expensesData || [])) :
-                    safeStorage.setJSON('expensesData', data.expensesData || []),
-                () => this.useFallback ? 
-                    localStorage.setItem('incomeData', JSON.stringify(data.incomeData || [])) :
-                    safeStorage.setJSON('incomeData', data.incomeData || []),
-                () => this.useFallback ? 
-                    localStorage.setItem('cards', JSON.stringify(data.cards || [])) :
-                    safeStorage.setJSON('cards', data.cards || []),
-                () => this.useFallback ? 
-                    localStorage.setItem('income-categories', JSON.stringify(data.categories?.income || [])) :
-                    safeStorage.setJSON('income-categories', data.categories?.income || []),
-                () => this.useFallback ? 
-                    localStorage.setItem('expense-categories', JSON.stringify(data.categories?.expense || [])) :
-                    safeStorage.setJSON('expense-categories', data.categories?.expense || []),
-                () => this.useFallback ? 
-                    localStorage.setItem('achievements', JSON.stringify(data.achievements || [])) :
-                    safeStorage.setJSON('achievements', data.achievements || [])
+                () => this.saveExpenses(data.expensesData || []),
+                () => this.saveIncomes(data.incomeData || []),
+                () => this.saveCards(data.cards || []),
+                () => this.saveIncomeCategories(data.categories?.income || []),
+                () => this.saveExpenseCategories(data.categories?.expense || []),
+                () => {
+                    const key = this.getStorageKey('achievements');
+                    return this.useFallback ? 
+                        localStorage.setItem(key, JSON.stringify(data.achievements || [])) :
+                        safeStorage.setJSON(key, data.achievements || []);
+                }
             ];
 
             // Executar operações e verificar sucesso
@@ -353,10 +406,11 @@ export class DataManager {
             // Salvar meta dados
             if (data.monthlyGoal) {
                 try {
+                    const key = this.getStorageKey('monthlyExpenseGoal');
                     if (this.useFallback) {
-                        localStorage.setItem('monthlyExpenseGoal', data.monthlyGoal);
+                        localStorage.setItem(key, data.monthlyGoal);
                     } else {
-                        safeStorage.setItem('monthlyExpenseGoal', data.monthlyGoal);
+                        safeStorage.setItem(key, data.monthlyGoal);
                     }
                     successCount++;
                 } catch (error) {
@@ -497,12 +551,8 @@ export class DataManager {
                 const saveData = {
                     ...data,
                     categories: {
-                        income: this.useFallback ? 
-                            JSON.parse(localStorage.getItem('income-categories') || '[]') : 
-                            safeStorage.getJSON('income-categories', []),
-                        expense: this.useFallback ? 
-                            JSON.parse(localStorage.getItem('expense-categories') || '[]') : 
-                            safeStorage.getJSON('expense-categories', [])
+                        income: this.getIncomeCategories(),
+                        expense: this.getExpenseCategories()
                     },
                     achievements: this.useFallback ? 
                         JSON.parse(localStorage.getItem('achievements') || '[]') : 
@@ -645,22 +695,47 @@ export class DataManager {
                 
                 // Aguardar um momento para o download
                 setTimeout(() => {
-                    localStorage.clear();
-                    showNotification('Dados limpos! Backup salvo na pasta Downloads.', 'info');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
+                    this.performClearData();
                 }, 1000);
             }
         } else {
             // Se clicou Cancelar (não quer backup), avisar sobre auto-save
             if (confirm('Tem certeza que deseja apagar todos os dados?\n\nEste processo apagará todos os dados e será possível recuperar apenas algumas modificações anteriores pelo auto-save.\n\nClique OK para CONFIRMAR a exclusão\nClique Cancelar para CANCELAR a operação')) {
-                localStorage.clear();
-                showNotification('Dados limpos! Algumas modificações podem ser recuperadas pelo histórico de auto-save.', 'info');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                this.performClearData();
             }
+        }
+    }
+
+    /**
+     * Executa a limpeza dos dados do usuário atual
+     * @private
+     */
+    performClearData() {
+        // Lista de chaves gerenciadas
+        const keysToRemove = [
+            'expensesData', 'incomeData', 'cards',
+            'income-categories', 'expense-categories',
+            'achievements', 'monthlyExpenseGoal',
+            'appData', 'lastAutoSave', 'autoSaveHistory'
+        ];
+
+        try {
+            keysToRemove.forEach(key => {
+                const storageKey = this.getStorageKey(key);
+                if (this.useFallback) {
+                    localStorage.removeItem(storageKey);
+                } else {
+                    safeStorage.removeItem(storageKey);
+                }
+            });
+            
+            showNotification('Dados limpos com sucesso!', 'info');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } catch (error) {
+            console.error('Erro ao limpar dados:', error);
+            showNotification('Erro ao limpar alguns dados.', 'error');
         }
     }
 }

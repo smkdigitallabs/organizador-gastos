@@ -153,18 +153,14 @@ export class CloudSync {
                 
                 if (data.expenses && data.expenses.length > 0) {
                     if (dataManager) {
-                        // Injetar dados no DataManager sem disparar evento de save (loop)
-                        // Precisamos de um método 'loadData' no DataManager
-                        // Por enquanto, vamos usar localStorage direto + reload ou métodos específicos
+                        // Salvar dados usando o novo método seguro do DataManager
+                        // Isso garante que os dados sejam salvos no contexto do usuário correto
+                        const success = dataManager.saveRemoteData(data);
                         
-                        localStorage.setItem('expensesData', JSON.stringify(data.expenses));
-                        localStorage.setItem('incomeData', JSON.stringify(data.incomes));
-                        localStorage.setItem('cards', JSON.stringify(data.cards));
-                        localStorage.setItem('expense-categories', JSON.stringify(data.expense_categories));
-                        localStorage.setItem('income-categories', JSON.stringify(data.income_categories));
-                        
-                        // Recarregar UI
-                        window.location.reload(); 
+                        if (success) {
+                            // Recarregar UI para refletir os novos dados
+                            window.location.reload(); 
+                        }
                     }
                 }
                 this.updateUIStatus('online');
