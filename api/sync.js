@@ -1,9 +1,10 @@
-const db = require('../lib/db');
-const { Clerk } = require('@clerk/clerk-sdk-node');
+
+import db from '../lib/db.js';
+import { Clerk } from '@clerk/clerk-sdk-node';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   // Configuração CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,10 +31,10 @@ module.exports = async (req, res) => {
       // Se não houver token, verificar se há User-Id para compatibilidade legada (inseguro)
       // TODO: Remover suporte a User-Id header puro em produção
       if (req.headers['user-id']) {
-          console.warn('Using insecure User-Id header');
-          userId = req.headers['user-id'];
+        console.warn('Using insecure User-Id header');
+        userId = req.headers['user-id'];
       } else {
-          throw new Error('Unauthorized');
+        throw new Error('Unauthorized');
       }
     } else {
         const token = authHeader.split(' ')[1];

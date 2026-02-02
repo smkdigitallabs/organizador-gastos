@@ -2,15 +2,20 @@
   "name": "organizador-de-gastos",
   "version": "1.0.0",
   "description": "Aplicativo para organizar gastos pessoais",
+  "type": "module",
   "main": "main.js",
   "scripts": {
+    "dev": "vite",
+    "web-build": "vite build",
+    "preview": "vite preview",
     "start": "electron .",
     "build": "electron-builder",
     "dist": "electron-builder --publish=never"
   },
   "devDependencies": {
     "electron": "latest",
-    "electron-builder": "latest"
+    "electron-builder": "latest",
+    "vite": "^7.3.1"
   },
   "build": {
     "appId": "com.organizador.gastos",

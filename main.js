@@ -1,5 +1,11 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Configuração para __dirname em ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -8,7 +14,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false, // Security: Disable nodeIntegration
       contextIsolation: true, // Security: Enable contextIsolation
-      preload: path.join(__dirname, 'preload.js'), // Security: Use preload script
+      preload: path.join(__dirname, 'preload.cjs'), // Security: Use preload script (CommonJS)
       sandbox: true // Security: Enable sandbox
     },
     icon: path.join(__dirname, 'icon.ico'), // Opcional: ícone personalizado

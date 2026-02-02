@@ -127,6 +127,16 @@ class SafeStorage {
   }
 
   /**
+   * Obtém e faz parse de dados JSON do localStorage (Alias para getJSON)
+   * @param {string} key - Chave do item
+   * @param {*} defaultValue - Valor padrão
+   * @returns {*} Dados parseados ou valor padrão
+   */
+  getObject(key, defaultValue = null) {
+    return this.getJSON(key, defaultValue);
+  }
+
+  /**
    * Obtém e faz parse de dados JSON do localStorage
    * @param {string} key - Chave do item
    * @param {*} defaultValue - Valor padrão
@@ -225,15 +235,4 @@ class SafeStorage {
 }
 
 // Instância global do SafeStorage
-const safeStorage = new SafeStorage();
-
-// Exporta para uso em módulos
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SafeStorage, safeStorage };
-}
-
-// Disponibiliza globalmente
-if (typeof window !== 'undefined') {
-  window.safeStorage = safeStorage;
-  window.SafeStorage = SafeStorage;
-}
+export const safeStorage = new SafeStorage();

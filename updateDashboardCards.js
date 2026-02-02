@@ -12,7 +12,7 @@
  * @param {string} month - Mês selecionado
  * @param {string} year - Ano selecionado
  */
-function updateDashboardCards(expensesData, incomeData, month, year) {
+export function updateDashboardCards(expensesData, incomeData, month, year) {
     try {
         // Verificar se estamos na página do dashboard
         const firstCard = document.querySelector('.card:nth-child(1) .amount');

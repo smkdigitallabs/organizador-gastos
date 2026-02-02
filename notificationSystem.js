@@ -127,21 +127,10 @@ class NotificationSystem {
   }
 }
 
-// Instância global do sistema de notificações
-const notificationSystem = new NotificationSystem();
+// Instância exportada do sistema de notificações
+export const notificationSystem = new NotificationSystem();
 
-// Função global compatível com o código existente
-function showNotification(message, type = 'info') {
+// Função exportada compatível com o código existente
+export function showNotification(message, type = 'info') {
   notificationSystem.show(message, type);
-}
-
-// Exporta para uso em módulos
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { NotificationSystem, notificationSystem, showNotification };
-}
-
-// Disponibiliza globalmente
-if (typeof window !== 'undefined') {
-  window.notificationSystem = notificationSystem;
-  window.showNotification = showNotification;
 }

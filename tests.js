@@ -1,3 +1,8 @@
+import { globalFunctionChecker } from './globalFunctionChecker.js';
+import { smartAutoSave } from './smartAutoSave.js';
+import { safeStorage } from './safeStorage.js';
+import { dataManager } from './dataManager.js';
+
 /**
  * Testes de validação para o Organizador de Gastos
  * Verifica se as correções implementadas não quebram funcionalidades existentes
@@ -181,27 +186,27 @@ class OrganizadorGastosTestes {
      */
     setupGlobalFunctionCheckerTests() {
         this.runner.addTest('GlobalFunctionChecker - Verifica existência de função', () => {
-            const checker = window.GlobalFunctionChecker || {};
+            const checker = globalFunctionChecker || {};
             this.runner.assertTrue(
-                typeof checker.exists === 'function',
-                'GlobalFunctionChecker.exists deve ser uma função'
+                typeof checker.functionExists === 'function', // functionExists is the method name in the class
+                'GlobalFunctionChecker.functionExists deve ser uma função'
             );
             
-            // Testar com função existente
+            // Testar com função existente (window.console.log ainda existe)
             this.runner.assertTrue(
-                checker.exists('console.log'),
+                checker.functionExists('console.log'),
                 'Deveria detectar console.log como existente'
             );
             
             // Testar com função inexistente
             this.runner.assertFalse(
-                checker.exists('funcaoInexistente'),
+                checker.functionExists('funcaoInexistente'),
                 'Deveria detectar funcaoInexistente como inexistente'
             );
         });
 
         this.runner.addTest('GlobalFunctionChecker - Chamada segura de função', () => {
-            const checker = window.GlobalFunctionChecker || {};
+            const checker = globalFunctionChecker || {};
             this.runner.assertTrue(
                 typeof checker.safeCall === 'function',
                 'GlobalFunctionChecker.safeCall deve ser uma função'
@@ -223,16 +228,11 @@ class OrganizadorGastosTestes {
     setupSmartAutoSaveTests() {
         this.runner.addTest('SmartAutoSave - Verifica inicialização', () => {
             this.runner.assertTrue(
-                typeof window.SmartAutoSave === 'function',
-                'SmartAutoSave deve estar disponível globalmente'
+                typeof smartAutoSave === 'object',
+                'Instância de smartAutoSave deve estar disponível'
             );
             
-            this.runner.assertTrue(
-                typeof window.smartAutoSave === 'object',
-                'Instância de smartAutoSave deve estar disponível globalmente'
-            );
-            
-            const autoSave = window.smartAutoSave;
+            const autoSave = smartAutoSave;
             this.runner.assertTrue(
                 typeof autoSave.start === 'function' && 
                 typeof autoSave.stop === 'function' &&
@@ -242,8 +242,9 @@ class OrganizadorGastosTestes {
         });
 
         this.runner.addTest('SmartAutoSave - Verifica detecção de atividade', () => {
-            const autoSave = window.smartAutoSave;
-            const initialState = autoSave.state.isUserActive;
+            const autoSave = smartAutoSave;
+            // Simular inatividade primeiro para garantir mudança
+            autoSave.state.isUserActive = false;
             
             // Simular atividade
             autoSave.updateActivity();
@@ -260,10 +261,9 @@ class OrganizadorGastosTestes {
      */
     setupSafeStorageTests() {
         this.runner.addTest('SafeStorage - Verifica operações básicas', () => {
-            const safeStorage = window.safeStorage;
             this.runner.assertTrue(
                 typeof safeStorage === 'object',
-                'safeStorage deve estar disponível globalmente'
+                'safeStorage deve estar disponível'
             );
             
             // Testar setItem
@@ -282,8 +282,6 @@ class OrganizadorGastosTestes {
         });
 
         this.runner.addTest('SafeStorage - Verifica tratamento de erros', () => {
-            const safeStorage = window.safeStorage;
-            
             // Testar getItem com chave inexistente
             const valorInexistente = safeStorage.getItem('chaveInexistente');
             this.runner.assertEqual(valorInexistente, null, 'safeStorage.getItem deve retornar null para chave inexistente');
@@ -300,10 +298,9 @@ class OrganizadorGastosTestes {
      */
     setupDataManagerTests() {
         this.runner.addTest('DataManager - Verifica inicialização', () => {
-            const dataManager = window.dataManager;
             this.runner.assertTrue(
                 typeof dataManager === 'object',
-                'dataManager deve estar disponível globalmente'
+                'dataManager deve estar disponível'
             );
             
             this.runner.assertTrue(
@@ -314,8 +311,6 @@ class OrganizadorGastosTestes {
         });
 
         this.runner.addTest('DataManager - Verifica detecção de mudanças', () => {
-            const dataManager = window.dataManager;
-            
             // Verificar se hasUnsavedChanges está disponível
             this.runner.assertTrue(
                 typeof dataManager.hasUnsavedChanges === 'function',

@@ -288,24 +288,8 @@ class EventBus {
     }
 }
 
-// Criar instância global única (Singleton)
-const eventBus = new EventBus();
-
-// Funções de conveniência globais
-window.eventBus = eventBus;
-
-// Funções de conveniência
-window.on = (eventName, callback, options) => eventBus.on(eventName, callback, options);
-window.emit = (eventName, data, options) => eventBus.emit(eventName, data, options);
-window.once = (eventName, callback, options) => eventBus.once(eventName, callback, options);
-
-// Exportar para módulos se necessário
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { EventBus, eventBus };
-}
-
-// Disponibilizar no window
-window.EventBus = EventBus;
+// Instanciar e exportar
+export const eventBus = new EventBus();
 
 // Log de inicialização
 console.log('[EVENT BUS]: Sistema de eventos centralizado inicializado');

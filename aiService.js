@@ -285,4 +285,4 @@ class AIService {
 }
 
 // Inicializa o serviço globalmente
-window.aiService = new AIService();
+export const aiService = new AIService();

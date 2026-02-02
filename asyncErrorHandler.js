@@ -5,7 +5,10 @@
  * Data: 2024
  */
 
-class AsyncErrorHandler {
+import { eventBus } from './eventBus.js';
+import { showNotification } from './notificationSystem.js';
+
+export class AsyncErrorHandler {
   constructor() {
     this.errorLog = [];
     this.maxLogSize = 100;
@@ -258,8 +261,8 @@ class AsyncErrorHandler {
     }
 
     // Emitir evento via EventBus se disponível
-    if (window.eventBus) {
-      window.eventBus.emit('async:error', errorInfo);
+    if (eventBus) {
+      eventBus.emit('async:error', errorInfo);
     }
 
     // Notificar usuário se necessário
@@ -438,28 +441,28 @@ class AsyncErrorHandler {
   }
 }
 
-// Inicializar globalmente
-window.asyncErrorHandler = new AsyncErrorHandler();
+// Inicializar e exportar
+export const asyncErrorHandler = new AsyncErrorHandler();
 
-// Funções de conveniência globais
-window.safeLocalStorage = (operation, key, value, options) => {
-  return window.asyncErrorHandler.safeLocalStorage(operation, key, value, options);
+// Funções de conveniência exportadas
+export const safeLocalStorage = (operation, key, value, options) => {
+  return asyncErrorHandler.safeLocalStorage(operation, key, value, options);
 };
 
-window.safeJsonParse = (jsonString, fallback, options) => {
-  return window.asyncErrorHandler.safeJsonParse(jsonString, fallback, options);
+export const safeJsonParse = (jsonString, fallback, options) => {
+  return asyncErrorHandler.safeJsonParse(jsonString, fallback, options);
 };
 
-window.safeFetch = (url, options, retryOptions) => {
-  return window.asyncErrorHandler.safeFetch(url, options, retryOptions);
+export const safeFetch = (url, options, retryOptions) => {
+  return asyncErrorHandler.safeFetch(url, options, retryOptions);
 };
 
-window.safeSetTimeout = (callback, delay, options) => {
-  return window.asyncErrorHandler.safeSetTimeout(callback, delay, options);
+export const safeSetTimeout = (callback, delay, options) => {
+  return asyncErrorHandler.safeSetTimeout(callback, delay, options);
 };
 
-window.safeSetInterval = (callback, interval, options) => {
-  return window.asyncErrorHandler.safeSetInterval(callback, interval, options);
+export const safeSetInterval = (callback, interval, options) => {
+  return asyncErrorHandler.safeSetInterval(callback, interval, options);
 };
 
-console.log('✅ AsyncErrorHandler carregado e disponível globalmente');
+console.log('✅ AsyncErrorHandler carregado');

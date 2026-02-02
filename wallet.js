@@ -1,13 +1,18 @@
+import { dataManager } from './dataManager.js';
+import { showNotification } from './notificationSystem.js';
+import { initSharedUI } from './uiShared.js';
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Shared UI
+    initSharedUI();
+
     const cardForm = document.getElementById('cardForm');
     const cardsList = document.getElementById('cardsList');
 
     // Carregar cartões existentes
     // Função para calcular o consumo do cartão
     function calculateCardUsage(cardName) {
-        const expensesData = typeof dataManager !== 'undefined' ? 
-            dataManager.getExpenses() : 
-            JSON.parse(localStorage.getItem('expensesData') || '[]');
+        const expensesData = dataManager.getExpenses();
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
         
@@ -24,9 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Modificar a função loadCards para incluir a barra de consumo
     function loadCards() {
-        const cards = typeof dataManager !== 'undefined' ? 
-            dataManager.getCards() : 
-            JSON.parse(localStorage.getItem('cards') || '[]');
+        const cards = dataManager.getCards();
         cardsList.innerHTML = '';
     
         if (cards.length === 0) {
@@ -197,15 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dueDay = parseInt(document.getElementById('dueDay').value);
 
         if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
-            // Verificação segura de função global
-            if (typeof safeCall !== 'undefined') {
-                safeCall('showNotification', 'Os dias de fechamento e vencimento devem estar entre 1 e 31', 'error');
-            } else if (typeof showNotification === 'function') {
-                showNotification('Os dias de fechamento e vencimento devem estar entre 1 e 31', 'error');
-            } else {
-                console.error('ERRO: Os dias de fechamento e vencimento devem estar entre 1 e 31');
-                alert('Os dias de fechamento e vencimento devem estar entre 1 e 31');
-            }
+            showNotification('Os dias de fechamento e vencimento devem estar entre 1 e 31', 'error');
             return;
         }
 
@@ -217,27 +212,14 @@ document.addEventListener('DOMContentLoaded', function() {
             dueDay: parseInt(document.getElementById('dueDay').value) || 0
         };
 
-        const cards = typeof dataManager !== 'undefined' ? 
-            dataManager.getCards() : 
-            JSON.parse(localStorage.getItem('cards') || '[]');
+        const cards = dataManager.getCards();
         cards.push(card);
         
-        if (typeof dataManager !== 'undefined') {
-            dataManager.saveCards(cards);
-        } else {
-            localStorage.setItem('cards', JSON.stringify(cards));
-        }
+        dataManager.saveCards(cards);
 
         cardForm.reset();
         loadCards();
-        // Verificação segura de função global
-        if (typeof safeCall !== 'undefined') {
-            safeCall('showNotification', 'Cartão adicionado com sucesso!');
-        } else if (typeof showNotification === 'function') {
-            showNotification('Cartão adicionado com sucesso!');
-        } else {
-            console.log('SUCESSO: Cartão adicionado com sucesso!');
-        }
+        showNotification('Cartão adicionado com sucesso!');
     });
 
     // Função para excluir cartão

@@ -1,3 +1,7 @@
+import { eventBus } from './eventBus.js';
+import { safeStorage } from './safeStorage.js';
+import { showNotification } from './notificationSystem.js';
+
 // Sistema de persistência de dados
 /**
  * Gerenciador de Dados - Versão Segura
@@ -6,14 +10,15 @@
  * @author Sistema de Debug Especializado
  * @version 2.0.0
  */
-class DataManager {
+export class DataManager {
     constructor() {
         this.CURRENT_DATA_VERSION = '2.0';
         this.AUTO_SAVE_INTERVAL = 5000; // 5 segundos (será otimizado)
         this.lastDataHash = null;
+        this.maxAutoSaveVersions = 20; // Default max versions
         
         // Verificar se SafeStorage está disponível
-        if (typeof safeStorage === 'undefined') {
+        if (!safeStorage) {
             console.error('DataManager: SafeStorage não encontrado. Funcionalidades limitadas.');
             this.useFallback = true;
         } else {
@@ -24,7 +29,7 @@ class DataManager {
         this.initializeEventSystem();
         
         // Configurar auto-save e carregar dados
-        this.setupAutoSave();
+        // this.setupAutoSave(); // Auto-save agora é gerenciado externamente pelo SmartAutoSave
         this.loadInitialData();
     }
 
@@ -34,7 +39,7 @@ class DataManager {
     initializeEventSystem() {
         try {
             // Verificar se EventBus está disponível
-            if (typeof eventBus === 'undefined') {
+            if (!eventBus) {
                 console.warn('DataManager: EventBus não disponível, usando modo compatibilidade');
                 return;
             }
@@ -156,8 +161,39 @@ class DataManager {
         this.notifyDataChange('income-categories');
     }
 
+    // Helper methods for adding data
+    addExpense(expense) {
+        const expenses = this.getExpenses();
+        if (!expense.id) {
+            expense.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        expenses.push(expense);
+        this.saveExpenses(expenses);
+        return expense;
+    }
+
+    addIncome(income) {
+        const incomes = this.getIncomes();
+        if (!income.id) {
+            income.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        incomes.push(income);
+        this.saveIncomes(incomes);
+        return income;
+    }
+
+    addCard(card) {
+        const cards = this.getCards();
+        if (!card.id) {
+            card.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        cards.push(card);
+        this.saveCards(cards);
+        return card;
+    }
+
     notifyDataChange(dataType) {
-        if (typeof eventBus !== 'undefined') {
+        if (eventBus) {
             eventBus.emit('data:updated', { type: dataType });
             // Emitir evento para atualizar dashboard
             eventBus.emit('ui:dashboard:update:request');
@@ -166,21 +202,6 @@ class DataManager {
         // Usamos setTimeout para não bloquear a thread principal
         setTimeout(() => this.autoSave(), 100);
     }
-
-    // Carregar dados do arquivo (função original removida por ser incompleta)
-    // async loadFromFile() {
-    //     try {
-    //         const fileInput = document.createElement('input');
-    //         fileInput.type = 'file';
-    //         fileInput.accept = '.json';
-            
-    //         if (!localStorage.getItem('expensesData')) {
-    //             console.log('Dados não encontrados no localStorage. Use "Importar Dados" para carregar um arquivo.');
-    //         }
-    //     } catch (error) {
-    //         console.log('Nenhum arquivo de dados encontrado. Iniciando com dados vazios.');
-    //     }
-    // }
 
     // Salvar dados em arquivo
     saveToFile() {
@@ -358,47 +379,6 @@ class DataManager {
                Array.isArray(data.cards);
     }
 
-    // Auto-save periódico
-    /**
-     * Configurar auto-save inteligente com tratamento de erros
-     */
-    setupAutoSave() {
-        try {
-            // Verificar se SmartAutoSave está disponível
-            if (typeof SmartAutoSave !== 'undefined') {
-                console.log('[DATA MANAGER]: Usando SmartAutoSave para auto-save inteligente');
-                // SmartAutoSave já gerencia o auto-save de forma inteligente
-                return;
-            }
-
-            // Fallback para auto-save básico com tratamento de erros
-            console.warn('[DATA MANAGER]: SmartAutoSave não disponível, usando auto-save básico');
-            
-            const autoSaveInterval = setInterval(() => {
-                try {
-                    this.autoSave();
-                } catch (error) {
-                    console.error('[DATA MANAGER]: Erro durante auto-save:', error);
-                    
-                    // Emitir evento de erro se EventBus estiver disponível
-                    if (typeof eventBus !== 'undefined') {
-                        eventBus.emit('system:error', {
-                            type: 'autosave_error',
-                            message: 'Falha no auto-save automático',
-                            error: error.message
-                        });
-                    }
-                }
-            }, this.AUTO_SAVE_INTERVAL);
-
-            // Armazenar referência do interval para possível limpeza
-            this.autoSaveIntervalId = autoSaveInterval;
-            
-        } catch (error) {
-            console.error('[DATA MANAGER]: Erro ao configurar auto-save:', error);
-        }
-    }
-
     // Carregar dados iniciais e aplicar migrações se necessário
     loadInitialData() {
         let storedData = {};
@@ -436,20 +416,16 @@ class DataManager {
         let migratedData = { ...data };
 
         // Exemplo de migração de 1.0 para 1.1:
-        // Se na versão 1.0 não existia 'expenseType' e agora existe,
-        // você pode adicionar um valor padrão ou tentar inferir.
         if (fromVersion === '1.0' && toVersion === '1.1') {
             if (migratedData.expensesData) {
                 migratedData.expensesData = migratedData.expensesData.map(expense => {
                     if (!expense.expenseType) {
-                        // Exemplo: se não tem tipo, assume 'variavel'
                         expense.expenseType = 'variavel'; 
                     }
                     return expense;
                 });
             }
         }
-        // Adicione mais blocos 'if' para outras migrações futuras (ex: 1.1 para 1.2, etc.)
 
         migratedData.version = toVersion; // Atualiza a versão dos dados migrados
         return migratedData;
@@ -554,7 +530,7 @@ class DataManager {
                 this.lastDataHash = currentHash;
                 
                 // Emitir evento de sucesso
-                if (typeof eventBus !== 'undefined') {
+                if (eventBus) {
                     eventBus.emit('data:autosave:success', {
                         timestamp: saveData.timestamp,
                         hash: currentHash
@@ -571,7 +547,7 @@ class DataManager {
             console.error('[DATA MANAGER]: Erro crítico durante auto-save:', error);
             
             // Emitir evento de erro
-            if (typeof eventBus !== 'undefined') {
+            if (eventBus) {
                 eventBus.emit('system:error', {
                     type: 'autosave_critical_error',
                     message: 'Falha crítica no auto-save',
@@ -581,9 +557,7 @@ class DataManager {
             }
             
             // Tentar notificar o usuário se possível
-            if (typeof showNotification === 'function') {
-                showNotification('Erro no auto-save. Dados podem não estar sendo salvos automaticamente.', 'error');
-            }
+            showNotification('Erro no auto-save. Dados podem não estar sendo salvos automaticamente.', 'error');
         }
     }
 
@@ -633,7 +607,6 @@ class DataManager {
             // Restaurar a chave 'appData' também
             localStorage.setItem('appData', JSON.stringify(data));
             
-            // this.showNotification('Dados restaurados com sucesso!', 'success'); // Removido: usando a função global
             showNotification('Dados restaurados com sucesso!', 'success');
             
             // Recarregar a página para atualizar a interface
@@ -644,7 +617,6 @@ class DataManager {
             return true;
         }
         
-        // this.showNotification('Versão não encontrada!', 'error'); // Removido: usando a função global
         showNotification('Versão não encontrada!', 'error');
         return false;
     }
@@ -652,36 +624,8 @@ class DataManager {
     // Limpar histórico de auto-save
     clearAutoSaveHistory() {
         localStorage.removeItem('autoSaveHistory');
-        // this.showNotification('Histórico de auto-save limpo!', 'info'); // Removido: usando a função global
         showNotification('Histórico de auto-save limpo!', 'info');
     }
-
-    // Função para mostrar notificações (removida, usando a versão global em script.js)
-    // showNotification(message, type = 'info') {
-    //     const notification = document.createElement('div');
-    //     notification.className = `notification ${type}`;
-    //     notification.textContent = message;
-    //     notification.style.cssText = `
-    //         position: fixed;
-    //         top: 20px;
-    //         right: 20px;
-    //         padding: 15px 20px;
-    //         border-radius: 5px;
-    //         color: white;
-    //         font-weight: bold;
-    //         z-index: 10000;
-    //         animation: slideIn 0.3s ease;
-    //         ${type === 'success' ? 'background-color: #4CAF50;' : ''}
-    //         ${type === 'error' ? 'background-color: #f44336;' : ''}
-    //         ${type === 'info' ? 'background-color: #2196F3;' : ''}
-    //     `;
-        
-    //     document.body.appendChild(notification);
-        
-    //     setTimeout(() => {
-    //         notification.remove();
-    //     }, 3000);
-    // }
 
     // Exportar dados para backup
     exportBackup() {
@@ -702,7 +646,6 @@ class DataManager {
                 // Aguardar um momento para o download
                 setTimeout(() => {
                     localStorage.clear();
-                    // this.showNotification('Dados limpos! Backup salvo na pasta Downloads.', 'info'); // Removido: usando a função global
                     showNotification('Dados limpos! Backup salvo na pasta Downloads.', 'info');
                     setTimeout(() => {
                         window.location.reload();
@@ -713,7 +656,6 @@ class DataManager {
             // Se clicou Cancelar (não quer backup), avisar sobre auto-save
             if (confirm('Tem certeza que deseja apagar todos os dados?\n\nEste processo apagará todos os dados e será possível recuperar apenas algumas modificações anteriores pelo auto-save.\n\nClique OK para CONFIRMAR a exclusão\nClique Cancelar para CANCELAR a operação')) {
                 localStorage.clear();
-                // this.showNotification('Dados limpos! Algumas modificações podem ser recuperadas pelo histórico de auto-save.', 'info'); // Removido: usando a função global
                 showNotification('Dados limpos! Algumas modificações podem ser recuperadas pelo histórico de auto-save.', 'info');
                 setTimeout(() => {
                     window.location.reload();
@@ -723,5 +665,4 @@ class DataManager {
     }
 }
 
-// Inicializar o gerenciador de dados
-const dataManager = new DataManager();
+export const dataManager = new DataManager();

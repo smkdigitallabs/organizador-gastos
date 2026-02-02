@@ -1,13 +1,17 @@
+import { eventBus } from './eventBus.js';
+import { dataManager } from './dataManager.js';
+
 /**
  * Cloud Sync Service
  * Integrates Clerk Auth and Neon DB Sync
  */
-class CloudSync {
+export class CloudSync {
     constructor() {
         this.clerk = null;
         this.isAuthenticated = false;
         this.userId = null;
         this.syncInProgress = false;
+        this.dataManager = dataManager;
         
         // Initialize Clerk
         this.initClerk();
@@ -78,7 +82,7 @@ class CloudSync {
     handleLogin(user) {
         this.isAuthenticated = true;
         this.userId = user.id;
-        window.userId = user.id; // Global access for other scripts
+        // window.userId = user.id; // Removed global access
         
         // Update UI
         document.getElementById('sign-in-btn').style.display = 'none';
@@ -89,15 +93,15 @@ class CloudSync {
         this.pullData();
         
         // Listen for changes
-        if (window.eventBus) {
-            window.eventBus.on('data:updated', () => this.pushData());
+        if (eventBus) {
+            eventBus.on('data:updated', () => this.pushData());
         }
     }
 
     handleLogout() {
         this.isAuthenticated = false;
         this.userId = null;
-        window.userId = null;
+        // window.userId = null; // Removed global access
         
         // Update UI
         document.getElementById('sign-in-btn').style.display = 'block';
@@ -148,7 +152,7 @@ class CloudSync {
                 // Para V1, assumimos que a nuvem é a fonte da verdade se não estiver vazia.
                 
                 if (data.expenses && data.expenses.length > 0) {
-                    if (window.dataManager) {
+                    if (dataManager) {
                         // Injetar dados no DataManager sem disparar evento de save (loop)
                         // Precisamos de um método 'loadData' no DataManager
                         // Por enquanto, vamos usar localStorage direto + reload ou métodos específicos
@@ -180,11 +184,11 @@ class CloudSync {
         this.updateUIStatus('syncing');
 
         try {
-            const data = window.dataManager.getAllData();
+            const data = dataManager.getAllData();
             // Adicionar categorias que não estão no getAllData padrão se necessário
             data.categories = {
-                expense: window.dataManager.getExpenseCategories(),
-                income: window.dataManager.getIncomeCategories()
+                expense: dataManager.getExpenseCategories(),
+                income: dataManager.getIncomeCategories()
             };
 
             await fetch('/api/sync', {
@@ -208,4 +212,4 @@ class CloudSync {
 }
 
 // Inicializar
-window.cloudSync = new CloudSync();
+export const cloudSync = new CloudSync();

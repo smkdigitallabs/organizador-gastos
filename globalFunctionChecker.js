@@ -4,7 +4,9 @@
  * Parte da correção dos problemas críticos da auditoria
  */
 
-class GlobalFunctionChecker {
+import { eventBus } from './eventBus.js';
+
+export class GlobalFunctionChecker {
     constructor() {
         this.missingFunctions = new Set();
         this.fallbackHandlers = new Map();
@@ -46,32 +48,32 @@ class GlobalFunctionChecker {
         // Fallback para loadAutoSaveVersions
         this.fallbackHandlers.set('loadAutoSaveVersions', () => {
             console.log('[FALLBACK]: loadAutoSaveVersions não disponível');
-            if (window.eventBus) {
-                window.eventBus.emit('autosave:load:fallback', { timestamp: new Date().toISOString() });
+            if (eventBus) {
+                eventBus.emit('autosave:load:fallback', { timestamp: new Date().toISOString() });
             }
         });
 
         // Fallback para updateDashboard
         this.fallbackHandlers.set('updateDashboard', () => {
             console.log('[FALLBACK]: updateDashboard não disponível');
-            if (window.eventBus) {
-                window.eventBus.emit('dashboard:update:fallback', { timestamp: new Date().toISOString() });
+            if (eventBus) {
+                eventBus.emit('dashboard:update:fallback', { timestamp: new Date().toISOString() });
             }
         });
 
         // Fallback para setupEventListeners
         this.fallbackHandlers.set('setupEventListeners', () => {
             console.log('[FALLBACK]: setupEventListeners não disponível');
-            if (window.eventBus) {
-                window.eventBus.emit('events:setup:fallback', { timestamp: new Date().toISOString() });
+            if (eventBus) {
+                eventBus.emit('events:setup:fallback', { timestamp: new Date().toISOString() });
             }
         });
 
         // Fallback para generateAIRecommendations
         this.fallbackHandlers.set('generateAIRecommendations', () => {
             console.log('[FALLBACK]: generateAIRecommendations não disponível');
-            if (window.eventBus) {
-                window.eventBus.emit('ai:recommendations:fallback', { timestamp: new Date().toISOString() });
+            if (eventBus) {
+                eventBus.emit('ai:recommendations:fallback', { timestamp: new Date().toISOString() });
             }
         });
 
@@ -99,20 +101,8 @@ class GlobalFunctionChecker {
             if (typeof window !== 'undefined' && typeof window[functionName] === 'function') {
                 return true;
             }
-
-            // Verificar no global (Node.js)
-            if (typeof global !== 'undefined' && typeof global[functionName] === 'function') {
-                return true;
-            }
-
-            // Verificar no escopo atual
-            if (typeof eval(`typeof ${functionName}`) === 'function') {
-                return true;
-            }
-
             return false;
-        } catch (error) {
-            this.logError(`Erro ao verificar função ${functionName}:`, error);
+        } catch (e) {
             return false;
         }
     }
@@ -296,7 +286,11 @@ class GlobalFunctionChecker {
 }
 
 // Criar instância global
-const globalFunctionChecker = new GlobalFunctionChecker();
+export const globalFunctionChecker = new GlobalFunctionChecker();
+
+// Adicionar métodos estáticos à classe para compatibilidade com testes
+GlobalFunctionChecker.exists = (functionName) => globalFunctionChecker.functionExists(functionName);
+GlobalFunctionChecker.safeCall = (functionName, ...args) => globalFunctionChecker.safeCall(functionName, ...args);
 
 // Funções de conveniência globais
 // Funções de conveniência para uso seguro das funções globais

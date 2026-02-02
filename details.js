@@ -1,4 +1,14 @@
+
+import { dataManager } from './dataManager.js';
+import { initSharedUI } from './uiShared.js';
+import { showNotification } from './notificationSystem.js';
+import { cloudSync } from './cloudSync.js';
+import { smartAutoSave } from './smartAutoSave.js';
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar UI Compartilhada
+    initSharedUI();
+
     const expensesList = document.getElementById('expensesList');
     const incomeList = document.getElementById('incomeList');
     const monthSelect = document.getElementById('month');
@@ -10,42 +20,42 @@ document.addEventListener('DOMContentLoaded', function() {
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
     
-    monthSelect.innerHTML = ''; // Limpa as opções existentes
-    months.forEach((month, index) => {
-        const option = document.createElement('option');
-        option.value = index + 1;
-        option.textContent = month;
-        monthSelect.appendChild(option);
-    });
-    
-    // Define o mês e ano atual
-    const currentDate = new Date();
-    monthSelect.value = currentDate.getMonth() + 1;
-    yearInput.value = currentDate.getFullYear();
-    
-    // Atualiza as listas quando o mês ou ano for alterado
-    monthSelect.addEventListener('change', updateLists);
-    yearInput.addEventListener('change', updateLists);
-    
-    // Carrega as listas inicialmente
-    updateLists();
+    if (monthSelect) {
+        monthSelect.innerHTML = ''; // Limpa as opções existentes
+        months.forEach((month, index) => {
+            const option = document.createElement('option');
+            option.value = index + 1;
+            option.textContent = month;
+            monthSelect.appendChild(option);
+        });
+        
+        // Define o mês e ano atual
+        const currentDate = new Date();
+        monthSelect.value = currentDate.getMonth() + 1;
+        if (yearInput) yearInput.value = currentDate.getFullYear();
+        
+        // Atualiza as listas quando o mês ou ano for alterado
+        monthSelect.addEventListener('change', updateLists);
+        if (yearInput) yearInput.addEventListener('change', updateLists);
+        
+        // Carrega as listas inicialmente
+        updateLists();
+    }
 });
 
 function updateLists() {
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
+    const monthSelect = document.getElementById('month');
+    const yearInput = document.getElementById('year');
     
-    // Recupera as transações do DataManager ou localStorage
-    let expenses = [];
-    let incomes = [];
+    if (!monthSelect || !yearInput) return;
+
+    const month = monthSelect.value;
+    const year = yearInput.value;
     
-    if (typeof dataManager !== 'undefined') {
-        expenses = dataManager.getExpenses();
-        incomes = dataManager.getIncomes();
-    } else {
-        expenses = JSON.parse(localStorage.getItem('expensesData') || '[]');
-        incomes = JSON.parse(localStorage.getItem('incomeData') || '[]');
-    }
+    // Recupera as transações do DataManager
+    // Como importamos dataManager, não precisamos de verificações de existência
+    let expenses = dataManager.getExpenses();
+    let incomes = dataManager.getIncomes();
     
     // Filtra as transações do mês selecionado
     const monthExpenses = filterTransactionsByMonth(expenses, month, year);
@@ -57,7 +67,10 @@ function updateLists() {
 }
 
 function filterTransactionsByMonth(transactions, month, year) {
+    if (!transactions || !Array.isArray(transactions)) return [];
+    
     return transactions.filter(transaction => {
+        if (!transaction.date) return false;
         const [y, m, d] = transaction.date.split('T')[0].split('-');
         return parseInt(m) === parseInt(month) && parseInt(y) === parseInt(year);
     });
@@ -65,6 +78,8 @@ function filterTransactionsByMonth(transactions, month, year) {
 
 function displayTransactions(listId, transactions) {
     const list = document.getElementById(listId);
+    if (!list) return;
+    
     list.innerHTML = '';
     
     if (transactions.length === 0) {
@@ -72,12 +87,14 @@ function displayTransactions(listId, transactions) {
         return;
     }
     
-    // Ordena as transações por data
+    // Ordena as transações por data (mais recente primeiro)
     transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     
     transactions.forEach(transaction => {
         const [y, m, d] = transaction.date.split('T')[0].split('-');
         const formattedDate = new Date(y, m - 1, d).toLocaleDateString('pt-BR');
+        
+        // Formatar valor
         const amount = parseFloat(transaction.amount)
             .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         
@@ -135,44 +152,34 @@ function displayTransactions(listId, transactions) {
         deleteIcon.addEventListener('click', () => {
             if (confirm('Tem certeza que deseja excluir esta transação?')) {
                 const isExpense = listId === 'expensesList';
-                let allTransactions = [];
-
-                if (typeof dataManager !== 'undefined') {
-                    allTransactions = isExpense ? dataManager.getExpenses() : dataManager.getIncomes();
-                } else {
-                    allTransactions = isExpense 
-                        ? JSON.parse(localStorage.getItem('expensesData') || '[]')
-                        : JSON.parse(localStorage.getItem('incomeData') || '[]');
-                }
+                let allTransactions = isExpense ? dataManager.getExpenses() : dataManager.getIncomes();
                 
                 // Encontra e remove a transação
-                // Usando uma estratégia mais robusta para encontrar a transação exata
-                // Idealmente, as transações deveriam ter IDs únicos
-                const updatedTransactions = allTransactions.filter(t => 
-                    !(t.date === transaction.date && 
-                      t.description === transaction.description && 
-                      t.amount === transaction.amount && 
-                      t.category === transaction.category));
+                // Idealmente, deveríamos usar IDs únicos. Como não temos certeza se todos têm ID,
+                // usamos uma combinação de campos ou ID se existir.
+                // dataManager deve ter suporte a delete se tiver ID.
                 
-                if (typeof dataManager !== 'undefined') {
-                    if (isExpense) {
-                        dataManager.saveExpenses(updatedTransactions);
-                    } else {
-                        dataManager.saveIncomes(updatedTransactions);
-                    }
+                let updatedTransactions;
+                if (transaction.id) {
+                    updatedTransactions = allTransactions.filter(t => t.id !== transaction.id);
                 } else {
-                    if (isExpense) {
-                        localStorage.setItem('expensesData', JSON.stringify(updatedTransactions));
-                    } else {
-                        localStorage.setItem('incomeData', JSON.stringify(updatedTransactions));
-                    }
+                    // Fallback para comparação por campos
+                    updatedTransactions = allTransactions.filter(t => 
+                        !(t.date === transaction.date && 
+                          t.description === transaction.description && 
+                          t.amount === transaction.amount && 
+                          t.category === transaction.category));
+                }
+                
+                if (isExpense) {
+                    dataManager.saveExpenses(updatedTransactions);
+                } else {
+                    dataManager.saveIncomes(updatedTransactions);
                 }
                 
                 updateLists(); // Atualiza a exibição
                 
-                if (typeof showNotification === 'function') {
-                    showNotification('Transação excluída com sucesso!', 'success');
-                }
+                showNotification('Transação excluída com sucesso!', 'success');
             }
         });
         

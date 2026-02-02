@@ -15,19 +15,19 @@
         <a href="expenses.html" title="Despesas"><i class="fas fa-dollar-sign expense-icon"></i></a>
         <a href="wallet.html" title="Carteira"><i class="fas fa-folder"></i></a>
         <a href="income.html" title="Receitas"><i class="fas fa-dollar-sign income-icon"></i></a>
-        <a href="#" id="export-data-btn" title="Exportar Dados" onclick="dataManager.exportBackup()"><i class="fas fa-download"></i></a>
-        <a href="#" id="import-data-btn" title="Importar Dados" onclick="document.getElementById('importFile').click()"><i class="fas fa-upload"></i></a>
-        <a href="#" onclick="dataManager.clearAllData()" class="trash-button" title="Limpar Dados"><i class="fas fa-trash-alt"></i></a>
-        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="dataManager.loadFromFileInput(this.files[0])">
+        <a href="#" id="export-data-btn" title="Exportar Dados"><i class="fas fa-download"></i></a>
+        <a href="#" id="import-data-btn" title="Importar Dados"><i class="fas fa-upload"></i></a>
+        <a href="#" id="clear-data-btn" class="trash-button" title="Limpar Dados"><i class="fas fa-trash-alt"></i></a>
+        <input type="file" id="importFile" accept=".json" style="display: none;">
     
         <!-- Adicionar seção de histórico de auto-saves -->
         <div class="auto-save-manager">
-            <a href="#" id="auto-save-history-btn" title="Histórico de Auto-Saves" onclick="toggleAutoSaveHistory()"><i class="fas fa-history"></i></a>
+            <a href="#" id="auto-save-history-btn" title="Histórico de Auto-Saves"><i class="fas fa-history"></i></a>
             <div id="auto-save-panel" class="auto-save-panel" style="display: none;">
                 <h3>Histórico de Auto-Saves</h3>
                 <div id="auto-save-versions"></div>
-                <button onclick="loadAutoSaveVersions()" class="btn-small">Carregar Versões</button>
-                <button onclick="dataManager.clearAutoSaveHistory()" class="btn-small btn-danger">Limpar Histórico</button>
+                <button id="load-versions-btn" class="btn-small">Carregar Versões</button>
+                <button id="clear-history-btn" class="btn-small btn-danger">Limpar Histórico</button>
             </div>
         </div>
     </nav>
@@ -58,8 +58,6 @@
         </div>
     </div>
     <!-- Adicionar antes do fechamento do body -->
-    <script src="dataManager.js"></script>
-    <script src="script.js"></script>
-    <script src="details.js"></script>
+    <script type="module" src="details.js"></script>
 </body>
 </html>
