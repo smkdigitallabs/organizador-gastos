@@ -9,7 +9,8 @@
     "web-build": "vite build",
     "preview": "vite preview",
     "start": "electron .",
-    "build": "electron-builder",
+    "build": "vite build",
+    "electron:build": "electron-builder",
     "dist": "electron-builder --publish=never"
   },
   "devDependencies": {
