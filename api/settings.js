@@ -7,8 +7,29 @@ const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export default async (req, res) => {
     // CORS
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Em produção, substitua '*' pelo domínio do seu frontend (ex: https://seu-app.vercel.app)
+    // Se estiver usando credenciais (cookies/auth headers), '*' não é permitido com credentials: true
+    // Como estamos usando Bearer token via Header Authorization, credentials: true pode não ser estritamente necessário se não houver cookies.
+    // Mas para segurança, vamos permitir apenas a origem correta ou refletir a origem se for confiável.
+    
+    const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://organizador-gastos-br.vercel.app' // Adicione seu domínio de produção aqui
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        // Fallback seguro ou '*' se não usar credentials
+        // res.setHeader('Access-Control-Allow-Origin', '*'); 
+        // Como o frontend envia credentials (auth header), vamos refletir se for dev, ou bloquear se não estiver na lista.
+        // Para simplificar neste momento e evitar quebra, vamos permitir * MAS remover credentials true se for *
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        // res.setHeader('Access-Control-Allow-Credentials', true); // Removido para segurança com *
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 

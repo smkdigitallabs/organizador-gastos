@@ -7,8 +7,19 @@ const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export default async (req, res) => {
   // Configuração CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://organizador-gastos-br.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',

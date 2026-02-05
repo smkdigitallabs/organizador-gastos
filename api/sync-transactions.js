@@ -1,19 +1,41 @@
 
 import { Clerk } from '@clerk/clerk-sdk-node';
+import { checkAllowlist } from '../lib/auth-utils.js';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
-export default async function handler(request, response) {
+export default async function handler(req, res) {
+    // Configuração CORS
+    const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://organizador-gastos-br.vercel.app'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // 1. Validar Método
-    if (request.method !== 'POST') {
-        return response.status(405).json({ error: 'Method not allowed' });
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
         // 2. Autenticação (CRÍTICO: Validar Usuário)
-        const authHeader = request.headers.authorization;
+        const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return response.status(401).json({ error: 'Unauthorized: Missing token' });
+            return res.status(401).json({ error: 'Unauthorized: Missing token' });
         }
 
         const token = authHeader.split(' ')[1];
@@ -25,13 +47,13 @@ export default async function handler(request, response) {
             // Security: Check Allowlist
             const { allowed, email } = await checkAllowlist(userId, clerk);
             if (!allowed) {
-                return response.status(403).json({ error: 'Access Denied: Email not authorized', email });
+                return res.status(403).json({ error: 'Access Denied: Email not authorized', email });
             }
         } catch (authError) {
-            return response.status(401).json({ error: 'Unauthorized: Invalid token' });
+            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
         }
 
-        const { itemId, accountId } = request.body;
+        const { itemId, accountId } = req.body;
         const CLIENT_ID = process.env.PLUGGY_CLIENT_ID;
         const CLIENT_SECRET = process.env.PLUGGY_CLIENT_SECRET;
 
@@ -40,7 +62,7 @@ export default async function handler(request, response) {
         }
 
         if (!itemId && !accountId) {
-            return response.status(400).json({ error: 'itemId or accountId required' });
+            return res.status(400).json({ error: 'itemId or accountId required' });
         }
 
         // 3. Authenticate Pluggy
@@ -69,7 +91,7 @@ export default async function handler(request, response) {
         const fromDate = new Date();
         fromDate.setDate(fromDate.getDate() - 30);
         const fromString = fromDate.toISOString().split('T')[0];
-
+        
         let allTransactions = [];
 
         for (const acc of accounts) {
@@ -89,10 +111,10 @@ export default async function handler(request, response) {
             }
         }
 
-        return response.status(200).json({ transactions: allTransactions });
+        return res.status(200).json({ transactions: allTransactions });
 
     } catch (error) {
         console.error('Sync Error:', error);
-        return response.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 }
