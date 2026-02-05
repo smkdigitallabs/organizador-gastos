@@ -15,7 +15,8 @@ export default async (req, res) => {
     const allowedOrigins = [
         'http://localhost:3000',
         'http://localhost:5173',
-        'https://organizador-gastos-br.vercel.app' // Adicione seu domínio de produção aqui
+        'https://organizador-gastos-br.vercel.app',
+        'https://organizador-de-gastos.vercel.app'
     ];
     
     const origin = req.headers.origin;
