@@ -25,7 +25,7 @@ export default async (req, res) => {
         const token = req.query['hub.verify_token'];
         const challenge = req.query['hub.challenge'];
 
-        const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
+        const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN?.trim();
         if (!VERIFY_TOKEN) {
             console.error('[WEBHOOK] WHATSAPP_VERIFY_TOKEN não definido no .env');
             return res.status(500).end();
