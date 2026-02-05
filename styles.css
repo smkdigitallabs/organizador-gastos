@@ -10,6 +10,45 @@
     --hover-bg: #f8f9fa;
 }
 
+body.dark-mode {
+    --background-color: #1a1a1a;
+    --text-color: #ecf0f1;
+    --card-bg: #2c3e50;
+    --border-color: #465c71;
+    --hover-bg: #34495e;
+    --primary-color: #2980b9;
+    --secondary-color: #3498db;
+}
+
+body.dark-mode .side-nav {
+    background-color: #2c3e50;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .side-nav a {
+    color: #ecf0f1;
+}
+
+body.dark-mode .side-nav a:hover {
+    background-color: var(--primary-color) !important;
+}
+
+body.dark-mode .card {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+body.dark-mode input, 
+body.dark-mode select {
+    background-color: #34495e;
+    color: #ecf0f1;
+    border-color: #465c71;
+}
+
+body.dark-mode .modal-content {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+}
+
 * {
     margin: 0;
     padding: 0;

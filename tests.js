@@ -351,3 +351,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Disponibilizar globalmente
 window.OrganizadorGastosTestes = OrganizadorGastosTestes;
+window.dataManager = dataManager;
+window.toggleAutoSaveHistory = toggleAutoSaveHistory;
+window.loadAutoSaveVersions = loadAutoSaveVersions;

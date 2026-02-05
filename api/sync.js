@@ -1,6 +1,7 @@
 
 import db from '../lib/db.js';
 import { Clerk } from '@clerk/clerk-sdk-node';
+import { checkAllowlist } from '../lib/auth-utils.js';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -24,24 +25,20 @@ export default async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // Fallback temporário para desenvolvimento/teste se necessário, 
-      // mas idealmente bloqueamos.
-      // throw new Error('No token provided');
-      
-      // Se não houver token, verificar se há User-Id para compatibilidade legada (inseguro)
-      // TODO: Remover suporte a User-Id header puro em produção
-      if (req.headers['user-id']) {
-        console.warn('Using insecure User-Id header');
-        userId = req.headers['user-id'];
-      } else {
-        throw new Error('Unauthorized');
-      }
+      throw new Error('Unauthorized: No token provided');
     } else {
         const token = authHeader.split(' ')[1];
         // Verificar token
         // Nota: verifyToken valida a assinatura e expiração
         const decoded = await clerk.verifyToken(token);
         userId = decoded.sub;
+
+        // Security: Check Allowlist
+        const { allowed, email } = await checkAllowlist(userId, clerk);
+        if (!allowed) {
+            console.warn(`[SECURITY] Blocked unauthorized access attempt by ${email || userId}`);
+            return res.status(403).json({ error: 'Access Denied: Email not authorized', email });
+        }
     }
   } catch (error) {
     console.error('Auth Error:', error);

@@ -41,7 +41,8 @@ export class DataManager {
     setUserId(userId) {
         this.userId = userId;
         console.log(`[DATA MANAGER]: Contexto de usuário alterado para: ${userId || 'Convidado'}`);
-        this.loadInitialData(); // Recarregar dados do novo contexto
+        // Recarregar dados do novo contexto
+        this.loadInitialData(); 
         this.notifyDataChange('all');
     }
 
@@ -119,7 +120,7 @@ export class DataManager {
 
             eventBus.on('ui:dashboard:update:request', () => {
                 // Emitir evento para atualizar dashboard sem dependência circular
-                eventBus.emit('ui:dashboard:update', this.getAllData());
+                eventBus.emit('dashboard:update', this.getAllData());
             }, { id: 'datamanager_dashboard' });
 
             console.log('[DATA MANAGER]: Sistema de eventos inicializado');
@@ -569,12 +570,15 @@ export class DataManager {
                 this.saveAutoSaveVersion(saveData);
                 
                 // Salvar usando SafeStorage se disponível
+                const appDataKey = this.getStorageKey('appData');
+                const lastAutoSaveKey = this.getStorageKey('lastAutoSave');
+
                 if (!this.useFallback) {
-                    safeStorage.setItem('lastAutoSave', saveData.timestamp);
-                    safeStorage.setJSON('appData', saveData);
+                    safeStorage.setItem(lastAutoSaveKey, saveData.timestamp);
+                    safeStorage.setJSON(appDataKey, saveData);
                 } else {
-                    localStorage.setItem('lastAutoSave', saveData.timestamp);
-                    localStorage.setItem('appData', JSON.stringify(saveData));
+                    localStorage.setItem(lastAutoSaveKey, saveData.timestamp);
+                    localStorage.setItem(appDataKey, JSON.stringify(saveData));
                 }
                 
                 this.lastDataHash = currentHash;

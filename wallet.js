@@ -1,10 +1,49 @@
 import { dataManager } from './dataManager.js';
 import { showNotification } from './notificationSystem.js';
 import { initSharedUI } from './uiShared.js';
+import { bankSyncService } from './bankSyncService.js';
+import { bankStatementParser } from './bankStatementParser.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Shared UI
     initSharedUI();
+
+    // Bind Bank Connection Button (Automatic)
+    const connectBankBtn = document.getElementById('connect-bank-btn');
+    if (connectBankBtn) {
+        connectBankBtn.onclick = () => bankSyncService.startConnectionFlow();
+    }
+
+    // Bind Statement Import Button (Manual)
+    const importStatementBtn = document.getElementById('import-statement-btn');
+    const statementFileInput = document.getElementById('statementFile');
+
+    if (importStatementBtn && statementFileInput) {
+        importStatementBtn.onclick = () => statementFileInput.click();
+
+        statementFileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                showNotification('Processando arquivo...', 'info');
+                const transactions = await bankStatementParser.parseFile(file);
+                
+                if (transactions.length > 0) {
+                    // Usar o mesmo processador do serviço de sync para padronizar
+                    bankSyncService.processTransactions(transactions);
+                } else {
+                    showNotification('Nenhuma transação válida encontrada no arquivo.', 'warning');
+                }
+                
+                // Limpar input
+                statementFileInput.value = '';
+            } catch (error) {
+                console.error('Erro na importação:', error);
+                showNotification('Erro ao importar arquivo: ' + error.message, 'error');
+            }
+        };
+    }
 
     const cardForm = document.getElementById('cardForm');
     const cardsList = document.getElementById('cardsList');

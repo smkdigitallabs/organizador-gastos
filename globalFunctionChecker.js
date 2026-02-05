@@ -120,7 +120,9 @@ export class GlobalFunctionChecker {
                 if (typeof window !== 'undefined' && window[functionName]) {
                     return window[functionName](...args);
                 } else {
-                    return eval(`${functionName}(...args)`);
+                    // Fallback seguro em vez de eval
+                    console.warn(`[GLOBAL CHECKER]: Tentativa de chamada insegura evitada para ${functionName}`);
+                    return null;
                 }
             } else {
                 // Função não existe, usar fallback

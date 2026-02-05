@@ -14,7 +14,11 @@ export class CloudSync {
         this.dataManager = dataManager;
         
         // Initialize Clerk
-        this.initClerk();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initClerk());
+        } else {
+            this.initClerk();
+        }
     }
 
     async initClerk() {
@@ -39,9 +43,31 @@ export class CloudSync {
         }
     }
 
+    ensureOverlay() {
+        let overlay = document.getElementById('auth-loading-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'auth-loading-overlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f2f5; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: "Segoe UI", sans-serif;';
+            overlay.innerHTML = `
+                <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+                <h2 style="color: #2c3e50;">Verificando Autenticação...</h2>
+                <p style="color: #7f8c8d;">Por favor, aguarde.</p>
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            `;
+            document.body.appendChild(overlay);
+        }
+        return overlay;
+    }
+
     async configureClerk() {
-        const publishableKey = 'pk_test_cmlnaHQtcXVhZ2dhLTMwLmNsZXJrLmFjY291bnRzLmRldiQ'; // REPLACE WITH YOUR KEY or load from env
-        // Em um ambiente real, isso viria de uma config injetada
+        // Garantir que o overlay existe antes de tudo
+        this.ensureOverlay();
+
+        // Usar chave do ambiente (Vite) ou fallback
+        const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_cmlnaHQtcXVhZ2dhLTMwLmNsZXJrLmFjY291bnRzLmRldiQ';
         
         if (!window.Clerk) return;
 
@@ -49,17 +75,38 @@ export class CloudSync {
             this.clerk = new window.Clerk(publishableKey);
             await this.clerk.load();
 
+            const overlay = document.getElementById('auth-loading-overlay');
+
             if (this.clerk.user) {
+                console.log('[CLOUD]: Usuário autenticado');
                 this.handleLogin(this.clerk.user);
+                
+                // Remover overlay apenas se autenticado
+                if (overlay) overlay.style.display = 'none';
             } else {
-                this.handleLogout();
+                console.log('[CLOUD]: Usuário não autenticado. Redirecionando...');
+                // Redirecionar para login IMEDIATAMENTE
+                this.clerk.redirectToSignIn({
+                    redirectUrl: window.location.href
+                });
+                // NÃO remover o overlay para evitar flash de conteúdo não autorizado
             }
 
             this.setupUI();
         } catch (error) {
             console.error('[CLOUD]: Clerk init error:', error);
-            // Fallback for demo without key
             this.updateUIStatus('offline');
+            // Em caso de erro crítico, permitir uso offline mas avisar
+            const overlay = document.getElementById('auth-loading-overlay');
+            if (overlay) {
+                overlay.innerHTML = `
+                    <div style="text-align: center; color: #e74c3c;">
+                        <h2>Erro de Conexão</h2>
+                        <p>Não foi possível verificar sua identidade.</p>
+                        <button onclick="window.location.reload()" style="padding: 10px 20px; cursor: pointer;">Tentar Novamente</button>
+                    </div>
+                `;
+            }
         }
     }
 
@@ -80,9 +127,55 @@ export class CloudSync {
     }
 
     handleLogin(user) {
+        // Enforce Allowlist
+        const ALLOWED_EMAILS = [
+            'samuelsilvamanso@gmail.com',
+            'sarahsilvamanso@gmail.com',
+            'nailamanso@gmail.com',
+            'mayra.manso@hotmail.com'
+        ];
+
+        const userEmail = user.primaryEmailAddress?.emailAddress;
+        
+        if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
+            console.error('[SECURITY]: Unauthorized user attempted access:', userEmail);
+            
+            // Show custom error overlay
+            const overlay = document.getElementById('auth-loading-overlay');
+            if (overlay) {
+                overlay.innerHTML = `
+                    <div style="text-align: center; color: #e74c3c; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🚫</div>
+                        <h2 style="margin-bottom: 10px;">Acesso Negado</h2>
+                        <p style="color: #7f8c8d; margin-bottom: 20px;">O email <strong>${userEmail}</strong> não tem permissão para acessar este sistema.</p>
+                        <button id="sign-out-unauthorized-btn" style="padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Sair</button>
+                    </div>
+                `;
+                overlay.style.display = 'flex'; // Ensure it's visible
+                
+                // Add event listener to sign out button
+                setTimeout(() => {
+                    const btn = document.getElementById('sign-out-unauthorized-btn');
+                    if (btn) {
+                        btn.onclick = () => {
+                            this.clerk.signOut().then(() => window.location.reload());
+                        };
+                    }
+                }, 100);
+            } else {
+                alert(`Acesso negado: O email ${userEmail} não está autorizado.`);
+                this.clerk.signOut();
+            }
+            return;
+        }
+
         this.isAuthenticated = true;
         this.userId = user.id;
-        // window.userId = user.id; // Removed global access
+        
+        // Update DataManager context to isolate user data
+        if (this.dataManager) {
+            this.dataManager.setUserId(this.userId);
+        }
         
         // Update UI
         document.getElementById('sign-in-btn').style.display = 'none';
@@ -101,7 +194,11 @@ export class CloudSync {
     handleLogout() {
         this.isAuthenticated = false;
         this.userId = null;
-        // window.userId = null; // Removed global access
+        
+        // Revert DataManager to guest mode
+        if (this.dataManager) {
+            this.dataManager.setUserId(null);
+        }
         
         // Update UI
         document.getElementById('sign-in-btn').style.display = 'block';
@@ -158,8 +255,13 @@ export class CloudSync {
                         const success = dataManager.saveRemoteData(data);
                         
                         if (success) {
-                            // Recarregar UI para refletir os novos dados
-                            window.location.reload(); 
+                            // Atualizar UI via EventBus em vez de recarregar
+                            console.log('[CLOUD]: Dados atualizados, solicitando refresh da UI');
+                            // notifyDataChange já foi chamado pelos métodos save* do DataManager
+                            // Mas para garantir, podemos forçar um update
+                            if (window.eventBus) {
+                                window.eventBus.emit('dashboard:update', dataManager.getAllData());
+                            }
                         }
                     }
                 }

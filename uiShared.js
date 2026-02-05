@@ -1,6 +1,37 @@
 
+import { cloudSync } from './cloudSync.js'; // Importar para garantir proteção de rota
 import { dataManager } from './dataManager.js';
 import { notificationSystem, showNotification } from './notificationSystem.js';
+
+// Função para verificar autenticação explicitamente (útil para settings.js)
+export async function checkAuth() {
+    // Se cloudSync já carregou e tem usuário, retorna true
+    if (cloudSync.clerk && cloudSync.clerk.user) {
+        return cloudSync.clerk.user;
+    }
+    
+    // Se ainda está carregando, tenta esperar um pouco (opcional, mas seguro)
+    // Em settings.js chamamos initSharedUI primeiro, que inicializa cloudSync
+    // Mas cloudSync é assíncrono na carga do Clerk.
+    
+    // Tenta pegar direto do window se o cloudSync falhou ou ainda não setou
+    if (window.Clerk && window.Clerk.user) {
+        return window.Clerk.user;
+    }
+
+    // Se não autenticado, redireciona
+    // Nota: cloudSync já faz isso automaticamente na inicialização, 
+    // mas settings.js pode precisar de confirmação antes de renderizar
+    if (window.Clerk) {
+        // Se Clerk carregou mas não tem user, tenta carregar sessão ou redirecionar
+        if (!window.Clerk.session) {
+             window.Clerk.redirectToSignIn();
+             return null;
+        }
+    }
+    
+    return null;
+}
 
 // Implementação da renderização de notificações (Visual)
 function showNotificationRenderer(message, type = 'success') {
@@ -103,105 +134,117 @@ export function loadAutoSaveVersions() {
             });
         }
     } catch (error) {
-        console.error('[UI]: Erro ao carregar versões:', error);
-        showNotification('Erro ao carregar histórico de versões', 'error');
+        console.error('Erro ao carregar versões de auto-save:', error);
     }
 }
 
-// Função para restaurar versão
-export function restoreVersion(versionId) {
-    console.log('[UI]: Restaurando versão via DataManager:', versionId);
-    dataManager.restoreAutoSaveVersion(versionId);
-    // Recarregar a página ou atualizar UI após restaurar?
-    // DataManager emite evento 'data:restored' ou similar?
-    // Por enquanto, reload para garantir consistência visual
-    setTimeout(() => window.location.reload(), 1000);
-}
-
-// Configurar listeners de navegação
-export function setupNavigationListeners() {
-    console.log('[UI]: Configurando listeners de navegação...');
-    
-    // Listener para botão de voltar
-    const backButtons = document.querySelectorAll('.back-button');
-    backButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.history.back();
-        });
-    });
-    
-    // Adicionar interatividade aos links do menu
-    const navLinks = document.querySelectorAll('nav a');
-    if (navLinks.length > 0) {
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                // Se não for link com # (ação JS), permitir navegação
-                const href = this.getAttribute('href');
-                if (href && href !== '#' && !href.startsWith('javascript:')) {
-                    // Remover classe active de todos os links
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    // Adicionar classe active ao link clicado
-                    this.classList.add('active');
-                }
-            });
-        });
+// Restaurar versão específica
+export async function restoreVersion(id) {
+    try {
+        const success = await dataManager.restoreAutoSaveVersion(id);
+        if (success) {
+            showNotification('Versão restaurada com sucesso! Recarregando...', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showNotification('Falha ao restaurar versão.', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao restaurar versão:', error);
+        showNotification('Erro ao restaurar versão: ' + error.message, 'error');
     }
 }
 
-// Configurar dropdowns de categoria (usado em múltiplos lugares?)
+// Configurar dropdowns de categoria
 export function setupCategoryDropdowns() {
-    console.log('[UI]: Configurando dropdowns de categoria...');
+    const categorySelects = document.querySelectorAll('select[name="category"], #category');
     
-    const categorySelects = document.querySelectorAll('.category-select');
+    // Categorias padrão
+    const expenseCategories = [
+        'Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Educação', 
+        'Lazer', 'Vestuário', 'Serviços', 'Dívidas', 'Outros'
+    ];
+    
+    const incomeCategories = [
+        'Salário', 'Freelance', 'Investimentos', 'Presente', 'Outros'
+    ];
+    
     categorySelects.forEach(select => {
-        // Adicionar opções se vazio
-        if (select.children.length === 0) {
-            const categories = [
-                'alimentacao', 'transporte', 'moradia', 'saude', 'educacao',
-                'lazer', 'vestuario', 'servicos', 'investimentos', 'outros'
-            ];
+        // Verificar se é um select de despesa ou receita pelo contexto (se possível)
+        // Por padrão, carregamos despesas se não houver indicação
+        if (select.options.length <= 1) { // Só tem o placeholder
+            const isIncome = select.closest('.income-section') || select.id === 'income-category';
+            const categories = isIncome ? incomeCategories : expenseCategories;
             
-            categories.forEach(category => {
+            categories.forEach(cat => {
                 const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                option.value = cat;
+                option.textContent = cat;
                 select.appendChild(option);
             });
         }
     });
 }
 
-// Inicialização comum da UI
+// Alternar Dark Mode
+export function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode);
+    
+    // Atualizar ícones
+    updateDarkModeIcons(isDarkMode);
+}
+
+// Atualizar ícones do Dark Mode
+function updateDarkModeIcons(isDarkMode) {
+    const icons = document.querySelectorAll('.dark-mode-toggle i');
+    icons.forEach(icon => {
+        if (isDarkMode) {
+            icon.className = 'fas fa-sun';
+        } else {
+            icon.className = 'fas fa-moon';
+        }
+    });
+}
+
+// Inicializar Dark Mode
+export function initDarkMode() {
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+    }
+    updateDarkModeIcons(isDarkMode);
+    
+    // Adicionar listeners aos botões
+    const buttons = document.querySelectorAll('.dark-mode-toggle');
+    buttons.forEach(btn => {
+        btn.onclick = toggleDarkMode;
+    });
+}
+
+// Registrar Service Worker
+export function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('ServiceWorker registrado com sucesso: ', registration.scope);
+                })
+                .catch(err => {
+                    console.log('Falha ao registrar ServiceWorker: ', err);
+                });
+        });
+    }
+}
+
+// Função de inicialização compartilhada (chamada por todas as páginas)
 export function initSharedUI() {
     initNotificationSystem();
-    setupNavigationListeners();
+    initDarkMode();
+    registerServiceWorker();
     
-    // Bind global buttons
-    const exportBtn = document.getElementById('export-data-btn');
-    if (exportBtn) exportBtn.addEventListener('click', () => dataManager.exportBackup());
-    
-    const importBtn = document.getElementById('import-data-btn');
-    if (importBtn) importBtn.addEventListener('click', () => {
-        const fileInput = document.getElementById('importFile');
-        if (fileInput) fileInput.click();
-    });
-    
-    const importFile = document.getElementById('importFile');
-    if (importFile) importFile.addEventListener('change', (e) => dataManager.loadFromFileInput(e.target.files[0]));
-    
-    const clearBtn = document.getElementById('clear-data-btn');
-    if (clearBtn) clearBtn.addEventListener('click', () => dataManager.clearAllData());
-    
-    const autoSaveBtn = document.getElementById('auto-save-history-btn');
-    if (autoSaveBtn) autoSaveBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        toggleAutoSaveHistory();
-    });
-    
-    const loadVersionsBtn = document.getElementById('load-versions-btn');
-    if (loadVersionsBtn) loadVersionsBtn.addEventListener('click', loadAutoSaveVersions);
-    
-    const clearHistoryBtn = document.getElementById('clear-history-btn');
-    if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', () => dataManager.clearAutoSaveHistory());
+    // Inicializar cloudSync (auth) se disponível
+    if (cloudSync && typeof cloudSync.init === 'function') {
+        cloudSync.init();
+    }
 }
