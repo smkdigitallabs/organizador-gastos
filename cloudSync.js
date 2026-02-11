@@ -1,5 +1,6 @@
 import { eventBus } from './eventBus.js';
 import { dataManager } from './dataManager.js';
+import { initDarkMode } from './uiShared.js';
 
 /**
  * Cloud Sync Service
@@ -12,16 +13,10 @@ export class CloudSync {
         this.userId = null;
         this.syncInProgress = false;
         this.dataManager = dataManager;
-        
-        // Initialize Clerk
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.initClerk());
-        } else {
-            this.initClerk();
-        }
     }
 
-    async initClerk() {
+    async init() {
+        if (this.clerk) return;
         try {
             // Load Clerk JS from CDN if not present (fallback) or assume bundle
             // Here we assume window.Clerk is available via script tag in index.html
@@ -66,8 +61,14 @@ export class CloudSync {
         // Garantir que o overlay existe antes de tudo
         this.ensureOverlay();
 
-        // Usar chave do ambiente (Vite) ou fallback
-        const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_cmlnaHQtcXVhZ2dhLTMwLmNsZXJrLmFjY291bnRzLmRldiQ';
+        // Usar chave do ambiente (Vite)
+        const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+        
+        if (!publishableKey) {
+            console.error('[CLOUD]: VITE_CLERK_PUBLISHABLE_KEY não definida!');
+            this.updateUIStatus('error');
+            return;
+        }
         
         if (!window.Clerk) return;
 
@@ -127,48 +128,6 @@ export class CloudSync {
     }
 
     handleLogin(user) {
-        // Enforce Allowlist
-        const ALLOWED_EMAILS = [
-            'samuelsilvamanso@gmail.com',
-            'sarahsilvamanso@gmail.com',
-            'nailamanso@gmail.com',
-            'mayra.manso@hotmail.com'
-        ];
-
-        const userEmail = user.primaryEmailAddress?.emailAddress;
-        
-        if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
-            console.error('[SECURITY]: Unauthorized user attempted access:', userEmail);
-            
-            // Show custom error overlay
-            const overlay = document.getElementById('auth-loading-overlay');
-            if (overlay) {
-                overlay.innerHTML = `
-                    <div style="text-align: center; color: #e74c3c; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px;">
-                        <div style="font-size: 48px; margin-bottom: 20px;">🚫</div>
-                        <h2 style="margin-bottom: 10px;">Acesso Negado</h2>
-                        <p style="color: #7f8c8d; margin-bottom: 20px;">O email <strong>${userEmail}</strong> não tem permissão para acessar este sistema.</p>
-                        <button id="sign-out-unauthorized-btn" style="padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Sair</button>
-                    </div>
-                `;
-                overlay.style.display = 'flex'; // Ensure it's visible
-                
-                // Add event listener to sign out button
-                setTimeout(() => {
-                    const btn = document.getElementById('sign-out-unauthorized-btn');
-                    if (btn) {
-                        btn.onclick = () => {
-                            this.clerk.signOut().then(() => window.location.reload());
-                        };
-                    }
-                }, 100);
-            } else {
-                alert(`Acesso negado: O email ${userEmail} não está autorizado.`);
-                this.clerk.signOut();
-            }
-            return;
-        }
-
         this.isAuthenticated = true;
         this.userId = user.id;
         
@@ -178,9 +137,13 @@ export class CloudSync {
         }
         
         // Update UI
-        document.getElementById('sign-in-btn').style.display = 'none';
-        document.getElementById('user-profile').style.display = 'flex';
-        document.getElementById('user-email').textContent = user.primaryEmailAddress.emailAddress;
+        const signInBtn = document.getElementById('sign-in-btn');
+        const userProfile = document.getElementById('user-profile');
+        const userEmail = document.getElementById('user-email');
+
+        if (signInBtn) signInBtn.style.display = 'none';
+        if (userProfile) userProfile.style.display = 'flex';
+        if (userEmail) userEmail.textContent = user.primaryEmailAddress.emailAddress;
         
         // Start Sync
         this.pullData();
@@ -201,8 +164,11 @@ export class CloudSync {
         }
         
         // Update UI
-        document.getElementById('sign-in-btn').style.display = 'block';
-        document.getElementById('user-profile').style.display = 'none';
+        const signInBtn = document.getElementById('sign-in-btn');
+        const userProfile = document.getElementById('user-profile');
+
+        if (signInBtn) signInBtn.style.display = 'block';
+        if (userProfile) userProfile.style.display = 'none';
     }
 
     updateUIStatus(status) {
@@ -229,11 +195,19 @@ export class CloudSync {
     }
 
     async pullData() {
-        if (!this.isAuthenticated) return;
+        if (!this.isAuthenticated || this.syncInProgress) return;
+        
+        this.syncInProgress = true;
         this.updateUIStatus('syncing');
 
         try {
-            const response = await fetch('/api/sync', {
+            console.log('[CLOUD]: Iniciando sync (pull)...');
+            
+            const isLocal = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+            const API_BASE_URL = isLocal ? 'https://organizador-de-gastos.vercel.app' : '';
+
+            const response = await fetch(`${API_BASE_URL}/api/sync`, {
+                method: 'GET',
                 headers: {
                     'User-Id': this.userId,
                     'Authorization': `Bearer ${await this.clerk.session.getToken()}`
@@ -272,6 +246,8 @@ export class CloudSync {
         } catch (error) {
             console.error('[CLOUD]: Pull error:', error);
             this.updateUIStatus('error');
+        } finally {
+            this.syncInProgress = false;
         }
     }
 
@@ -289,7 +265,13 @@ export class CloudSync {
                 income: dataManager.getIncomeCategories()
             };
 
-            await fetch('/api/sync', {
+            // Determine API Base URL
+            // If running in Electron (file protocol) or local dev without proxy, point to production
+            // Adjust this logic if you have a local backend running
+            const isLocal = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+            const API_BASE_URL = isLocal ? 'https://organizador-de-gastos.vercel.app' : '';
+
+            await fetch(`${API_BASE_URL}/api/sync`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

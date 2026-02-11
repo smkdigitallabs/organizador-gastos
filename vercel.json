@@ -8,7 +8,7 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "X-XSS-Protection", "value": "1; mode=block" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self' https://*.clerk.accounts.dev https://*.pluggy.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-analytics.com https://*.clerk.browser.v2.dev; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://img.clerk.com; connect-src 'self' https://*.clerk.accounts.dev https://*.pluggy.ai https://*.vercel-analytics.com https://*.vercel-insights.com;" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.pluggy.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://img.clerk.com; connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.pluggy.ai https://*.vercel-analytics.com https://*.vercel-insights.com;" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
       ]

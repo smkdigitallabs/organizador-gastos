@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' https://clerk.browser.js https://*.clerk.accounts.dev https://*.clerk.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.pluggy.ai; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://img.clerk.com; connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.pluggy.ai https://*.vercel-analytics.com https://*.vercel-insights.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizador de Gastos</title>
     <link rel="stylesheet" href="styles.css">
@@ -29,7 +29,7 @@
         <a href="#" id="export-data-btn" title="Exportar Dados"><i class="fas fa-download"></i></a>
         <a href="#" id="import-data-btn" title="Importar Dados"><i class="fas fa-upload"></i></a>
         <a href="#" id="clear-data-btn" title="Apagar Todos os Dados"><i class="fas fa-trash-alt"></i></a>
-        <a href="#" id="dark-mode-toggle" title="Alternar Modo Escuro"><i class="fas fa-moon"></i></a>
+        <a href="#" id="dark-mode-toggle" class="dark-mode-toggle" title="Alternar Modo Escuro"><i class="fas fa-moon"></i></a>
         <input type="file" id="importFile" accept=".json" style="display: none;">
     
         <!-- Adicionar seção de histórico de auto-saves -->
@@ -70,6 +70,12 @@
         </div>
 
         <div class="summary-cards">
+            <div class="section-header-container">
+                <h3>RESUMO</h3>
+                <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('summary'))" title="Dúvidas sobre o Resumo?">
+                    <i class="fas fa-question"></i> Dúvidas
+                </button>
+            </div>
             <div class="card">
                 <h3>GANHEI</h3>
                 <div class="amount"></div>
@@ -103,7 +109,12 @@
         </div>
 
         <div class="fixed-expenses">
-            <h3>Gastos Fixos</h3>
+            <div class="section-header-container">
+                <h3>Gastos Fixos</h3>
+                <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('fixed'))" title="Dúvidas sobre Gastos Fixos?">
+                    <i class="fas fa-question"></i> Dúvidas
+                </button>
+            </div>
             <div class="progress-bar">
                 <div class="progress" style="width: 0%;">0%</div>
             </div>
@@ -114,7 +125,12 @@
 
         <!-- Nova seção para despesas variáveis -->
         <div class="variable-expenses">
-            <h3>Despesas Variáveis</h3>
+            <div class="section-header-container">
+                <h3>Despesas Variáveis</h3>
+                <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('variable'))" title="Dúvidas sobre Despesas Variáveis?">
+                    <i class="fas fa-question"></i> Dúvidas
+                </button>
+            </div>
             <div class="progress-bar">
                 <div class="progress" id="variable-progress" style="width: 0%;">0%</div>
             </div>
@@ -125,7 +141,12 @@
 
         <div class="dashboard-bottom">
             <div class="monthly-expenses-chart card">
-                <h3>GASTOS MENSAIS</h3>
+                <div class="section-header-container">
+                    <h3>GASTOS MENSAIS</h3>
+                    <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('chart'))" title="Dúvidas sobre o gráfico?">
+                        <i class="fas fa-question"></i> Dúvidas
+                    </button>
+                </div>
                 <div class="chart-container">
                     <div class="chart-bars">
                         <!-- Os elementos chart-bar serão gerados dinamicamente pelo JavaScript -->
@@ -134,7 +155,12 @@
             </div>
 
             <div class="ai-recommendations card">
-                <h3>Recomendações de IA</h3>
+                <div class="section-header-container">
+                    <h3>Recomendações de IA</h3>
+                    <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('ai'))" title="Dúvidas sobre recomendações?">
+                        <i class="fas fa-question"></i> Dúvidas
+                    </button>
+                </div>
                 <div class="recommendations-content" id="ai-recommendations">
                     <div class="loading-recommendations">
                         <i class="fas fa-spinner fa-spin"></i>

@@ -1,6 +1,6 @@
 
 import { dataManager } from './dataManager.js';
-import { initSharedUI } from './uiShared.js';
+import { initSharedUI, populateMonthSelector } from './uiShared.js';
 import { showNotification } from './notificationSystem.js';
 import { cloudSync } from './cloudSync.js';
 import { smartAutoSave } from './smartAutoSave.js';
@@ -14,24 +14,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const monthSelect = document.getElementById('month');
     const yearInput = document.getElementById('year');
     
-    // Preenche o select de meses
-    const months = [
-        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    
     if (monthSelect) {
-        monthSelect.innerHTML = ''; // Limpa as opções existentes
-        months.forEach((month, index) => {
-            const option = document.createElement('option');
-            option.value = index + 1;
-            option.textContent = month;
-            monthSelect.appendChild(option);
-        });
+        // Preenche o select de meses usando a função centralizada
+        populateMonthSelector(monthSelect);
         
-        // Define o mês e ano atual
+        // Define o ano atual
         const currentDate = new Date();
-        monthSelect.value = currentDate.getMonth() + 1;
         if (yearInput) yearInput.value = currentDate.getFullYear();
         
         // Atualiza as listas quando o mês ou ano for alterado

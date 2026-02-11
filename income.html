@@ -28,7 +28,7 @@
         <a href="#" id="export-data-btn" title="Exportar Dados"><i class="fas fa-download"></i></a>
         <a href="#" id="import-data-btn" title="Importar Dados"><i class="fas fa-upload"></i></a>
         <a href="#" id="clear-data-btn" title="Apagar Todos os Dados" class="trash-button"><i class="fas fa-trash-alt"></i></a>
-        <a href="#" id="dark-mode-toggle" title="Alternar Modo Escuro"><i class="fas fa-moon"></i></a>
+        <a href="#" id="dark-mode-toggle" class="dark-mode-toggle" title="Alternar Modo Escuro"><i class="fas fa-moon"></i></a>
         <input type="file" id="importFile" accept=".json" style="display: none;">
     
         <!-- Adicionar seção de histórico de auto-saves -->
@@ -48,9 +48,23 @@
         </div>
     </nav>
     <div class="main-content">
-    </header>
-
+        <div class="auth-header" style="display: flex; justify-content: flex-end; padding: 10px;">
+            <div id="auth-container">
+                <button id="sign-in-btn" class="btn-primary">Entrar / Criar Conta</button>
+                <div id="user-profile" style="display: none; align-items: center; gap: 10px;">
+                    <span id="user-email"></span>
+                    <button id="sign-out-btn" class="btn-small btn-danger">Sair</button>
+                    <div id="sync-status" title="Status da Sincronização" style="width: 10px; height: 10px; border-radius: 50%; background-color: gray;"></div>
+                </div>
+            </div>
+        </div>
         <div class="expense-form">
+            <div class="section-header-container">
+                <h2>Adicionar Receita</h2>
+                <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('income-form'))" title="Dúvidas sobre o cadastro de receita?">
+                    <i class="fas fa-question"></i> Dúvidas
+                </button>
+            </div>
             <form id="incomeForm">
                 <div class="form-group">
                     <label for="description">Descrição:</label>

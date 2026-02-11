@@ -18,16 +18,11 @@ export default async function handler(request, response) {
 
         const token = authHeader.split(' ')[1];
         
+        let userId;
         try {
             // Verifica a assinatura e expiração do token JWT
             const claims = await clerk.verifyToken(token);
-            const userId = claims.sub;
-
-            // Security: Check Allowlist
-            const { allowed, email } = await checkAllowlist(userId, clerk);
-            if (!allowed) {
-                return response.status(403).json({ error: 'Access Denied: Email not authorized', email });
-            }
+            userId = claims.sub;
         } catch (authError) {
             console.error('Auth verification failed:', authError);
             return response.status(401).json({ error: 'Unauthorized: Invalid token' });
@@ -72,8 +67,8 @@ export default async function handler(request, response) {
             },
             body: JSON.stringify({
                 options: {
-                    // Usar um identificador opaco para privacidade
-                    clientUserId: 'user_' + Date.now() 
+                    // Usar ID do usuário autenticado para persistência e segurança
+                    clientUserId: userId
                 }
             })
         });

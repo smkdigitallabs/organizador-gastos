@@ -3,7 +3,7 @@ import { eventBus } from './eventBus.js';
 import { dataManager } from './dataManager.js';
 import { updateDashboardCards } from './updateDashboardCards.js';
 import { aiService } from './aiService.js';
-import { initSharedUI, setupCategoryDropdowns } from './uiShared.js';
+import { initSharedUI, setupCategoryDropdowns, populateMonthSelector } from './uiShared.js';
 import { showNotification } from './notificationSystem.js';
 import { cloudSync } from './cloudSync.js';
 import { smartAutoSave } from './smartAutoSave.js';
@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         // Inicializar UI Compartilhada (Notificações, Navegação, AutoSave)
         initSharedUI();
+        
+        // Configurar dashboard se estivermos na página principal
+        const monthSelect = document.getElementById('month');
+        if (monthSelect) {
+            populateMonthSelector(monthSelect);
+        }
         
         // Inicializar sistema de eventos local
         initializeEventSystem();
@@ -69,8 +75,8 @@ function setupDashboard() {
     const yearInput = document.getElementById('year');
     
     if (monthSelect && yearInput) {
-        // Definir mês/ano atual se não definido
-        if (!monthSelect.value) monthSelect.value = new Date().getMonth() + 1;
+        // Definir ano atual se não definido (mês já definido por populateMonthSelector)
+        if (!yearInput.value) yearInput.value = new Date().getFullYear();
         
         monthSelect.addEventListener('change', () => {
             console.log('[SCRIPT]: Filtro de mês alterado');
@@ -143,13 +149,13 @@ function setupFormListeners() {
     console.log('[SCRIPT]: Configurando listeners de formulários...');
     
     // Listener para formulário de despesas
-    const expenseForm = document.getElementById('expense-form');
+    const expenseForm = document.getElementById('expenseForm');
     if (expenseForm) {
         expenseForm.addEventListener('submit', handleExpenseSubmit);
     }
     
     // Listener para formulário de receitas
-    const incomeForm = document.getElementById('income-form');
+    const incomeForm = document.getElementById('incomeForm');
     if (incomeForm) {
         incomeForm.addEventListener('submit', function(e) {
             console.log('[SCRIPT]: Formulário de receita submetido');
@@ -195,7 +201,7 @@ function setupEventListeners() {
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         // Evitar duplicação se já adicionado em setupFormListeners
-        if (form.id !== 'expense-form' && form.id !== 'income-form') {
+        if (form.id !== 'expenseForm' && form.id !== 'incomeForm') {
             form.addEventListener('submit', function(e) {
                 console.log('[SCRIPT]: Formulário submetido');
             });
@@ -210,7 +216,13 @@ function setupEventListeners() {
             console.log('[SCRIPT]: Ação executada:', action);
         });
     });
+
+    // Configurar botões da barra lateral - Removido daqui, centralizado em uiShared.js
 }
+
+// Funções de Gerenciamento de Dados - REMOVIDAS (Centralizadas no DataManager e uiShared)
+// exportData, importData e clearAllData agora são tratados pelo dataManager diretamente
+
 
 // Função para gerar recomendações de IA
 function generateAIRecommendations(data) {

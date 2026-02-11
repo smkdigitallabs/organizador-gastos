@@ -28,7 +28,7 @@
         <a href="#" id="export-data-btn" title="Exportar Dados"><i class="fas fa-download"></i></a>
         <a href="#" id="import-data-btn" title="Importar Dados"><i class="fas fa-upload"></i></a>
         <a href="#" id="clear-data-btn" class="trash-button" title="Limpar Dados"><i class="fas fa-trash-alt"></i></a>
-        <a href="#" id="dark-mode-toggle" title="Alternar Modo Escuro"><i class="fas fa-moon"></i></a>
+        <a href="#" id="dark-mode-toggle" class="dark-mode-toggle" title="Alternar Modo Escuro"><i class="fas fa-moon"></i></a>
         <input type="file" id="importFile" accept=".json" style="display: none;">
     
         <!-- Adicionar seção de histórico de auto-saves -->
@@ -48,6 +48,16 @@
         </div>
     </nav>
     <div class="main-content">
+        <div class="auth-header" style="display: flex; justify-content: flex-end; padding: 10px;">
+            <div id="auth-container">
+                <button id="sign-in-btn" class="btn-primary">Entrar / Criar Conta</button>
+                <div id="user-profile" style="display: none; align-items: center; gap: 10px;">
+                    <span id="user-email"></span>
+                    <button id="sign-out-btn" class="btn-small btn-danger">Sair</button>
+                    <div id="sync-status" title="Status da Sincronização" style="width: 10px; height: 10px; border-radius: 50%; background-color: gray;"></div>
+                </div>
+            </div>
+        </div>
         <header>
             <div class="month-selector">
                 <i class="fas fa-calendar"></i>
@@ -60,13 +70,23 @@
         </header>
         <div class="details-container">
             <div class="details-column expenses-list">
-                <h2>Despesas do Mês</h2>
+                <div class="section-header-container">
+                    <h2>Despesas do Mês</h2>
+                    <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('transactions'))" title="Dúvidas sobre a lista de despesas?">
+                        <i class="fas fa-question"></i> Dúvidas
+                    </button>
+                </div>
                 <div class="transactions-list" id="expensesList">
                     <!-- Lista de despesas será preenchida via JavaScript -->
                 </div>
             </div>
             <div class="details-column income-list">
-                <h2>Receitas do Mês</h2>
+                <div class="section-header-container">
+                    <h2>Receitas do Mês</h2>
+                    <button class="help-btn" onclick="import('./tutorialSystem.js').then(m => m.tutorialSystem.startTour('transactions'))" title="Dúvidas sobre a lista de receitas?">
+                        <i class="fas fa-question"></i> Dúvidas
+                    </button>
+                </div>
                 <div class="transactions-list" id="incomeList">
                     <!-- Lista de receitas será preenchida via JavaScript -->
                 </div>

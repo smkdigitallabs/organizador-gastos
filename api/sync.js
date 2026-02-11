@@ -1,7 +1,6 @@
 
 import db from '../lib/db.js';
 import { Clerk } from '@clerk/clerk-sdk-node';
-import { checkAllowlist } from '../lib/auth-utils.js';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -44,13 +43,6 @@ export default async (req, res) => {
         // Nota: verifyToken valida a assinatura e expiração
         const decoded = await clerk.verifyToken(token);
         userId = decoded.sub;
-
-        // Security: Check Allowlist
-        const { allowed, email } = await checkAllowlist(userId, clerk);
-        if (!allowed) {
-            console.warn(`[SECURITY] Blocked unauthorized access attempt by ${email || userId}`);
-            return res.status(403).json({ error: 'Access Denied: Email not authorized', email });
-        }
     }
   } catch (error) {
     console.error('Auth Error:', error);

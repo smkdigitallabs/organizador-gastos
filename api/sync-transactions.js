@@ -1,6 +1,5 @@
 
 import { Clerk } from '@clerk/clerk-sdk-node';
-import { checkAllowlist } from '../lib/auth-utils.js';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -44,12 +43,6 @@ export default async function handler(req, res) {
         try {
             const claims = await clerk.verifyToken(token);
             const userId = claims.sub;
-
-            // Security: Check Allowlist
-            const { allowed, email } = await checkAllowlist(userId, clerk);
-            if (!allowed) {
-                return res.status(403).json({ error: 'Access Denied: Email not authorized', email });
-            }
         } catch (authError) {
             return res.status(401).json({ error: 'Unauthorized: Invalid token' });
         }
@@ -64,6 +57,12 @@ export default async function handler(req, res) {
 
         if (!itemId && !accountId) {
             return res.status(400).json({ error: 'itemId or accountId required' });
+        }
+
+        // Validação de Segurança (Input Validation)
+        const safeIdPattern = /^[a-zA-Z0-9_-]+$/;
+        if ((itemId && !safeIdPattern.test(itemId)) || (accountId && !safeIdPattern.test(accountId))) {
+             return res.status(400).json({ error: 'Invalid ID format' });
         }
 
         // 3. Authenticate Pluggy

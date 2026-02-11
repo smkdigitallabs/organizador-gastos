@@ -264,16 +264,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para excluir cartão
     window.deleteCard = function(index) {
         if (confirm('Tem certeza que deseja excluir este cartão?')) {
-            const cards = typeof dataManager !== 'undefined' ? 
-                dataManager.getCards() : 
-                JSON.parse(localStorage.getItem('cards') || '[]');
+            const cards = dataManager.getCards();
             cards.splice(index, 1);
-            
-            if (typeof dataManager !== 'undefined') {
-                dataManager.saveCards(cards);
-            } else {
-                localStorage.setItem('cards', JSON.stringify(cards));
-            }
+            dataManager.saveCards(cards);
             loadCards();
         }
     };

@@ -76,6 +76,30 @@ export function initNotificationSystem() {
     notificationSystem.initialize(showNotificationRenderer);
 }
 
+/**
+ * Preenche um seletor de meses
+ * @param {HTMLElement} selectElement 
+ */
+export function populateMonthSelector(selectElement) {
+    if (!selectElement) return;
+    
+    const months = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    
+    selectElement.innerHTML = '';
+    months.forEach((month, index) => {
+        const option = document.createElement('option');
+        option.value = index + 1;
+        option.textContent = month;
+        selectElement.appendChild(option);
+    });
+    
+    // Definir mês atual
+    selectElement.value = new Date().getMonth() + 1;
+}
+
 // Função para alternar histórico de auto-save
 export function toggleAutoSaveHistory() {
     const historyContainer = document.getElementById('auto-save-panel'); // ID corrigido conforme HTML
@@ -189,7 +213,13 @@ export function setupCategoryDropdowns() {
 export function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     const isDarkMode = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDarkMode);
+    
+    // Usar dataManager para isolar a preferência de tema se disponível
+    if (dataManager && typeof dataManager.getStorageKey === 'function') {
+        localStorage.setItem(dataManager.getStorageKey('darkMode'), isDarkMode);
+    } else {
+        localStorage.setItem('darkMode', isDarkMode);
+    }
     
     // Atualizar ícones
     updateDarkModeIcons(isDarkMode);
@@ -209,7 +239,15 @@ function updateDarkModeIcons(isDarkMode) {
 
 // Inicializar Dark Mode
 export function initDarkMode() {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    let isDarkMode = false;
+    
+    // Tentar obter preferência isolada
+    if (dataManager && typeof dataManager.getStorageKey === 'function') {
+        isDarkMode = localStorage.getItem(dataManager.getStorageKey('darkMode')) === 'true';
+    } else {
+        isDarkMode = localStorage.getItem('darkMode') === 'true';
+    }
+    
     if (isDarkMode) {
         document.body.classList.add('dark-mode');
     }
@@ -242,9 +280,72 @@ export function initSharedUI() {
     initNotificationSystem();
     initDarkMode();
     registerServiceWorker();
+    setupSideNavButtons();
     
     // Inicializar cloudSync (auth) se disponível
     if (cloudSync && typeof cloudSync.init === 'function') {
         cloudSync.init();
+    }
+}
+
+// Configurar botões da barra lateral que existem em todas as páginas
+function setupSideNavButtons() {
+    const exportBtn = document.getElementById('export-data-btn');
+    if (exportBtn) {
+        exportBtn.onclick = (e) => {
+            e.preventDefault();
+            import('./dataManager.js').then(m => m.dataManager.saveToFile());
+        };
+    }
+
+    const importBtn = document.getElementById('import-data-btn');
+    const importFile = document.getElementById('importFile');
+    if (importBtn && importFile) {
+        importBtn.onclick = (e) => {
+            e.preventDefault();
+            importFile.click();
+        };
+        importFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                import('./dataManager.js').then(m => m.dataManager.loadFromFileInput(file));
+            }
+        };
+    }
+
+    const clearBtn = document.getElementById('clear-data-btn');
+    if (clearBtn) {
+        clearBtn.onclick = (e) => {
+            e.preventDefault();
+            if (confirm('Tem certeza que deseja apagar TODOS os dados? Esta ação não pode ser desfeita.')) {
+                import('./dataManager.js').then(m => m.dataManager.clearAllData());
+            }
+        };
+    }
+
+    const historyBtn = document.getElementById('auto-save-history-btn');
+    if (historyBtn) {
+        historyBtn.onclick = (e) => {
+            e.preventDefault();
+            toggleAutoSaveHistory();
+        };
+    }
+
+    const loadVersionsBtn = document.getElementById('load-versions-btn');
+    if (loadVersionsBtn) {
+        loadVersionsBtn.onclick = (e) => {
+            e.preventDefault();
+            loadAutoSaveVersions();
+        };
+    }
+
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    if (clearHistoryBtn) {
+        clearHistoryBtn.onclick = (e) => {
+            e.preventDefault();
+            if (confirm('Tem certeza que deseja limpar todo o histórico de auto-saves?')) {
+                import('./dataManager.js').then(m => m.dataManager.clearAutoSaveHistory());
+            }
+        };
     }
 }

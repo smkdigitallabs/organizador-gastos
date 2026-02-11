@@ -1,7 +1,6 @@
 
 import db from '../lib/db.js';
 import { Clerk } from '@clerk/clerk-sdk-node';
-import { checkAllowlist } from '../lib/auth-utils.js';
 
 const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
@@ -48,12 +47,6 @@ export default async (req, res) => {
         const token = authHeader.split(' ')[1];
         const decoded = await clerk.verifyToken(token);
         userId = decoded.sub;
-
-        // Security Check
-        const { allowed } = await checkAllowlist(userId, clerk);
-        if (!allowed) {
-            return res.status(403).json({ error: 'Access Denied' });
-        }
     } catch (error) {
         return res.status(401).json({ error: 'Unauthorized', details: error.message });
     }

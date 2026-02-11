@@ -29,6 +29,19 @@ class SafeStorage {
   }
 
   /**
+   * Obtém a chave isolada se o dataManager estiver disponível
+   * @private
+   * @param {string} key 
+   * @returns {string}
+   */
+  getIsolatedKey(key) {
+    if (window.dataManager && typeof window.dataManager.getStorageKey === 'function') {
+      return window.dataManager.getStorageKey(key);
+    }
+    return key;
+  }
+
+  /**
    * Obtém item do localStorage com tratamento de erros
    * @param {string} key - Chave do item
    * @param {*} defaultValue - Valor padrão se não encontrado ou erro
@@ -40,15 +53,17 @@ class SafeStorage {
       return defaultValue;
     }
 
+    const isolatedKey = this.getIsolatedKey(key);
+
     try {
       if (this.isAvailable) {
-        const item = localStorage.getItem(key);
+        const item = localStorage.getItem(isolatedKey);
         return item !== null ? item : defaultValue;
       } else {
-        return this.fallbackData.get(key) || defaultValue;
+        return this.fallbackData.get(isolatedKey) || defaultValue;
       }
     } catch (error) {
-      console.error(`SafeStorage.getItem: Erro ao acessar '${key}':`, error);
+      console.error(`SafeStorage.getItem: Erro ao acessar '${isolatedKey}':`, error);
       return defaultValue;
     }
   }
@@ -65,26 +80,28 @@ class SafeStorage {
       return false;
     }
 
+    const isolatedKey = this.getIsolatedKey(key);
+
     try {
       const stringValue = typeof value === 'string' ? value : String(value);
       
       if (this.isAvailable) {
-        localStorage.setItem(key, stringValue);
+        localStorage.setItem(isolatedKey, stringValue);
       } else {
-        this.fallbackData.set(key, stringValue);
+        this.fallbackData.set(isolatedKey, stringValue);
       }
       return true;
     } catch (error) {
-      console.error(`SafeStorage.setItem: Erro ao salvar '${key}':`, error);
+      console.error(`SafeStorage.setItem: Erro ao salvar '${isolatedKey}':`, error);
       
       // Tentar fallback em memória se localStorage falhar
       if (this.isAvailable) {
         try {
-          this.fallbackData.set(key, String(value));
-          console.warn(`SafeStorage: Usando fallback em memória para '${key}'`);
+          this.fallbackData.set(isolatedKey, String(value));
+          console.warn(`SafeStorage: Usando fallback em memória para '${isolatedKey}'`);
           return true;
         } catch (fallbackError) {
-          console.error(`SafeStorage: Fallback também falhou para '${key}':`, fallbackError);
+          console.error(`SafeStorage: Fallback também falhou para '${isolatedKey}':`, fallbackError);
         }
       }
       return false;
@@ -172,25 +189,36 @@ class SafeStorage {
       return false;
     }
 
+    const isolatedKey = this.getIsolatedKey(key);
+
     try {
       if (this.isAvailable) {
-        localStorage.removeItem(key);
+        localStorage.removeItem(isolatedKey);
       } else {
-        this.fallbackData.delete(key);
+        this.fallbackData.delete(isolatedKey);
       }
       return true;
     } catch (error) {
-      console.error(`SafeStorage.removeItem: Erro ao remover '${key}':`, error);
+      console.error(`SafeStorage.removeItem: Erro ao remover '${isolatedKey}':`, error);
       return false;
     }
   }
 
   /**
-   * Limpa todo o localStorage
+   * Limpa todo o localStorage (ou apenas os dados do usuário atual se isolado)
    * @returns {boolean} Sucesso da operação
    */
   clear() {
     try {
+      // Se tivermos um dataManager com userId, não podemos usar localStorage.clear()
+      // pois isso apagaria os dados de TODOS os usuários no mesmo navegador.
+      if (window.dataManager && window.dataManager.userId) {
+        console.warn('SafeStorage.clear: Operação global bloqueada em modo isolado. Use dataManager.performClearData() para limpar apenas dados do usuário.');
+        // Opcionalmente poderíamos iterar e remover apenas chaves com o prefixo do usuário,
+        // mas performClearData() já faz algo similar de forma mais segura.
+        return false;
+      }
+
       if (this.isAvailable) {
         localStorage.clear();
       } else {
@@ -209,14 +237,18 @@ class SafeStorage {
    * @returns {boolean} Se a chave existe
    */
   hasItem(key) {
+    if (!key || typeof key !== 'string') return false;
+    
+    const isolatedKey = this.getIsolatedKey(key);
+
     try {
       if (this.isAvailable) {
-        return localStorage.getItem(key) !== null;
+        return localStorage.getItem(isolatedKey) !== null;
       } else {
-        return this.fallbackData.has(key);
+        return this.fallbackData.has(isolatedKey);
       }
     } catch (error) {
-      console.error(`SafeStorage.hasItem: Erro ao verificar '${key}':`, error);
+      console.error(`SafeStorage.hasItem: Erro ao verificar '${isolatedKey}':`, error);
       return false;
     }
   }

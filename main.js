@@ -17,11 +17,13 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'), // Security: Use preload script (CommonJS)
       sandbox: true // Security: Enable sandbox
     },
-    icon: path.join(__dirname, 'icon.ico'), // Opcional: ícone personalizado
+    // icon: path.join(__dirname, 'icon.ico'), // Opcional: ícone personalizado
     title: 'Organizador de Gastos'
   });
 
-  mainWindow.loadFile('index.html');
+  // Em produção, carregar o arquivo da pasta dist
+  // Em desenvolvimento, você pode querer mudar para carregar do localhost
+  mainWindow.loadFile('dist/index.html');
   
   // Remove menu bar (opcional)
   mainWindow.setMenuBarVisibility(false);

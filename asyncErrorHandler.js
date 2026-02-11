@@ -53,23 +53,35 @@ export class AsyncErrorHandler {
     
     try {
       return await this.withTimeout(async () => {
+        // Obter chave isolada se possível
+        let storageKey = key;
+        if (window.dataManager && typeof window.dataManager.getStorageKey === 'function') {
+          storageKey = window.dataManager.getStorageKey(key);
+        }
+
         switch (operation) {
           case 'getItem':
-            const item = localStorage.getItem(key);
+            const item = localStorage.getItem(storageKey);
             return item;
             
           case 'setItem':
             if (value === null) {
-              throw new Error('Valor não pode ser null para setItem');
+              throw new Error('Valor não pode ser null for setItem');
             }
-            localStorage.setItem(key, value);
+            localStorage.setItem(storageKey, value);
             return true;
             
           case 'removeItem':
-            localStorage.removeItem(key);
+            localStorage.removeItem(storageKey);
             return true;
             
           case 'clear':
+            // Operação perigosa: clear() apaga TUDO de todos os usuários
+            // No contexto isolado, deveríamos apenas remover chaves com prefixo
+            if (window.dataManager && typeof window.dataManager.clearAllData === 'function') {
+               await window.dataManager.clearAllData();
+               return true;
+            }
             localStorage.clear();
             return true;
             
@@ -324,7 +336,12 @@ export class AsyncErrorHandler {
         url: window.location.href
       };
       
-      sessionStorage.setItem('emergencyState', JSON.stringify(emergencyState));
+      // Usar chave isolada se possível
+      const key = (window.dataManager && typeof window.dataManager.getStorageKey === 'function') 
+        ? window.dataManager.getStorageKey('emergencyState') 
+        : 'emergencyState';
+      
+      sessionStorage.setItem(key, JSON.stringify(emergencyState));
     } catch (e) {
       console.error('Falha ao salvar estado de emergência:', e);
     }

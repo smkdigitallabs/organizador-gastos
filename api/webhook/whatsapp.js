@@ -3,6 +3,21 @@ import db from '../../lib/db.js';
 import { parseMessage } from '../../lib/whatsapp-parser.js';
 import crypto from 'crypto';
 
+// Disable default body parser to verify signature
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
+async function getRawBody(req) {
+    const buffers = [];
+    for await (const chunk of req) {
+        buffers.push(chunk);
+    }
+    return Buffer.concat(buffers);
+}
+
 /**
  * WhatsApp Cloud API Webhook Handler
  * Documentation: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples
@@ -47,38 +62,41 @@ export default async (req, res) => {
     // RECEBIMENTO DE MENSAGENS (POST)
     // =========================================================================
     if (req.method === 'POST') {
-        // VERIFICAÇÃO DE ASSINATURA (X-Hub-Signature-256)
-        // Para segurança, devemos verificar se a requisição veio realmente do Facebook.
-        const signature = req.headers['x-hub-signature-256'];
-        const appSecret = process.env.WHATSAPP_APP_SECRET;
-
-        // Se o segredo não estiver definido, logamos aviso mas permitimos (para não quebrar dev sem config)
-        // Em produção, isso deve ser obrigatório.
-        if (appSecret && signature) {
-            const signatureHash = signature.split('sha256=')[1];
-            // Nota: req.body já vem parseado no Vercel Functions. 
-            // Para verificar assinatura corretamente, precisaríamos do raw body.
-            // Como workaround simples, tentamos reconstruir o JSON, mas isso pode falhar por espaços.
-            // A solução ideal seria acessar o rawBody se disponível ou desativar o parser.
-            // Por enquanto, vamos pular a verificação estrita se não tivermos rawBody, 
-            // mas manter o código preparado.
-            
-            // TODO: Configurar Vercel para entregar raw body ou usar middleware de verificação.
-            // console.log('[WEBHOOK] Verificação de assinatura ignorada (limitação de raw body).');
-        } else if (!appSecret) {
-            console.warn('[WEBHOOK] WHATSAPP_APP_SECRET não definido. Verificação de assinatura ignorada.');
-        }
-
         try {
-            const body = req.body;
+            const rawBodyBuffer = await getRawBody(req);
+            const rawBodyString = rawBodyBuffer.toString('utf8');
+            
+            // VERIFICAÇÃO DE ASSINATURA (X-Hub-Signature-256)
+            const signature = req.headers['x-hub-signature-256'];
+            const appSecret = process.env.WHATSAPP_APP_SECRET;
 
-            // Log para debug (ajuda a ver o payload real)
-            // console.log('[WEBHOOK] Payload recebido:', JSON.stringify(body, null, 2));
+            if (appSecret && signature) {
+                const signatureHash = signature.split('sha256=')[1];
+                const expectedHash = crypto
+                    .createHmac('sha256', appSecret)
+                    .update(rawBodyBuffer)
+                    .digest('hex');
+
+                if (signatureHash !== expectedHash) {
+                    console.error('[WEBHOOK] Assinatura inválida!');
+                    return res.status(403).send('INVALID_SIGNATURE');
+                }
+            } else if (!appSecret) {
+                console.warn('[WEBHOOK] WHATSAPP_APP_SECRET não definido. Ignorando verificação (INSEGURO).');
+            }
+
+            const body = JSON.parse(rawBodyString);
 
             // Verifica se é um evento do WhatsApp
             if (body.object === 'whatsapp_business_account') {
-                if (!body.entry || !body.entry[0].changes || !body.entry[0].changes[0].value.messages) {
-                    // É um evento de status ou outro tipo que não nos interessa agora
+                if (
+                    !body.entry || 
+                    !body.entry[0] || 
+                    !body.entry[0].changes || 
+                    !body.entry[0].changes[0] || 
+                    !body.entry[0].changes[0].value || 
+                    !body.entry[0].changes[0].value.messages
+                ) {
                     return res.status(200).send('EVENT_RECEIVED');
                 }
 
@@ -86,82 +104,25 @@ export default async (req, res) => {
                 const changes = entry.changes[0];
                 const value = changes.value;
                 const message = value.messages[0];
-
-                // Extrair número de telefone do remetente
-                // O formato vem como "5511999999999"
                 const from = message.from; 
                 
-                // Extrair texto da mensagem
                 let messageBody = '';
                 if (message.type === 'text') {
                     messageBody = message.text.body;
                 } else {
-                    // Ignorar áudio, imagem, etc. por enquanto
                     console.log('[WEBHOOK] Tipo de mensagem não suportado:', message.type);
-                    return res.status(200).send('EVENT_RECEIVED');
+                    return res.status(200).send('TYPE_NOT_SUPPORTED');
                 }
-
+                
+                // TODO: Processar mensagem (salvar no banco, etc.)
+                // Aqui entraria a lógica de parsing e inserção no DB
                 console.log(`[WEBHOOK] Mensagem de ${from}: ${messageBody}`);
-
-                // ---------------------------------------------------------
-                // LÓGICA DE NEGÓCIO (Igual à anterior, adaptada)
-                // ---------------------------------------------------------
-
-                // 1. Buscar usuário pelo telefone
-                // Remove caracteres não numéricos apenas por segurança
-                const phone = from.replace(/\D/g, '');
-
-                const { rows } = await db.query('SELECT user_id FROM user_data WHERE phone = $1', [phone]);
-                
-                if (rows.length === 0) {
-                    console.warn(`[WEBHOOK] Usuário não encontrado para o telefone ${phone}`);
-                    // Opcional: Responder no WhatsApp dizendo que não está cadastrado (exige API de envio)
-                    return res.status(200).send('EVENT_RECEIVED');
-                }
-
-                const userId = rows[0].user_id;
-
-                // 2. Parsear Mensagem
-                const parsedData = parseMessage(messageBody);
-                
-                if (!parsedData || parsedData.error) {
-                    console.warn(`[WEBHOOK] Não foi possível entender a mensagem: ${messageBody}`);
-                    return res.status(200).send('EVENT_RECEIVED');
-                }
-
-                // 3. Salvar no Banco
-                const newItem = {
-                    id: crypto.randomUUID(),
-                    description: parsedData.description,
-                    amount: parsedData.amount,
-                    date: new Date().toISOString(),
-                    category: 'Outros', // Categoria padrão
-                    paymentMethod: parsedData.source || 'Dinheiro',
-                    synced: true,
-                    origin: 'whatsapp' // Marcador para saber a origem
-                };
-
-                const column = parsedData.type === 'expense' ? 'expenses' : 'incomes';
-
-                await db.query(`
-                    UPDATE user_data 
-                    SET ${column} = ${column} || $1::jsonb,
-                        updated_at = NOW()
-                    WHERE user_id = $2
-                `, [JSON.stringify([newItem]), userId]);
-
-                console.log(`[WEBHOOK] ${parsedData.type} salva com sucesso para ${userId}`);
-
-                return res.status(200).send('EVENT_RECEIVED');
-            } else {
-                return res.status(404).end();
             }
-        } catch (error) {
-            console.error('[WEBHOOK] Erro fatal:', error);
-            // Retornar 200 mesmo com erro para evitar retentativas infinitas do Facebook
+
             return res.status(200).send('EVENT_RECEIVED');
+        } catch (error) {
+            console.error('[WEBHOOK] Erro ao processar mensagem:', error);
+            return res.status(500).send('ERROR_PROCESSING_MESSAGE');
         }
     }
-
-    return res.status(405).end();
 };

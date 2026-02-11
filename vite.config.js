@@ -2,11 +2,11 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
+  base: './', // Necessário para Electron (caminhos relativos)
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['@clerk/clerk-js'], // Bibliotecas pesadas separadas
           'core': ['./dataManager.js', './eventBus.js', './uiShared.js'] // Core da aplicação
         }
       },

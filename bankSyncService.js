@@ -30,8 +30,12 @@ export class BankSyncService {
         try {
             showNotification('Iniciando conexão segura com Pluggy...', 'info');
 
+            // Determine API Base URL
+            const isLocal = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+            const API_BASE_URL = isLocal ? 'https://organizador-de-gastos.vercel.app' : '';
+
             // 1. Obter Connect Token do Backend
-            const response = await fetch('/api/create-connect-token', { method: 'POST' });
+            const response = await fetch(`${API_BASE_URL}/api/create-connect-token`, { method: 'POST' });
             if (!response.ok) throw new Error('Falha ao gerar token de conexão');
             
             const { accessToken } = await response.json();
@@ -104,7 +108,11 @@ export class BankSyncService {
 
             showNotification('Sincronizando transações...', 'info');
 
-            const response = await fetch('/api/sync-transactions', {
+            // Determine API Base URL
+            const isLocal = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+            const API_BASE_URL = isLocal ? 'https://organizador-de-gastos.vercel.app' : '';
+
+            const response = await fetch(`${API_BASE_URL}/api/sync-transactions`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -133,42 +141,66 @@ export class BankSyncService {
      * Processa e salva as transações no DataManager
      */
     processTransactions(transactions) {
-        let count = 0;
+        let expenseCount = 0;
+        let incomeCount = 0;
         
         transactions.forEach(tx => {
-            // Evitar duplicatas (verificar se ID já existe)
-            // Nota: O DataManager deve tratar isso, mas podemos pré-filtrar se necessário
-            // O Pluggy retorna ID único por transação.
+            // tx.type pode ser 'DEBIT' (saída) ou 'CREDIT' (entrada)
+            // Se o tipo estiver presente, usamos ele. Caso contrário, tentamos inferir pelo sinal do amount original.
+            let isIncome = false;
             
-            // Mapear campos do Pluggy para nosso App
-            const expense = {
-                id: tx.id, // ID original do Pluggy
+            if (tx.type) {
+                isIncome = tx.type === 'CREDIT';
+            } else if (tx.amount !== undefined) {
+                isIncome = tx.amount > 0;
+            }
+
+            const absAmount = Math.abs(tx.amount);
+            
+            // Mapear campos para o formato do App
+            const normalizedTx = {
+                id: tx.id || (Date.now().toString(36) + Math.random().toString(36).substr(2)),
                 date: tx.date.split('T')[0],
                 description: tx.description,
-                amount: Math.abs(tx.amount),
+                amount: absAmount,
                 category: tx.category || 'Outros',
-                paymentMethod: tx.type === 'CREDIT' ? 'credito' : 'debito',
+                paymentMethod: isIncome ? 'dinheiro' : (tx.type === 'CREDIT_CARD' ? 'credito_vista' : 'debito'),
                 status: 'pago',
-                source: 'PLUGGY_SYNC',
-                originalData: {
+                source: tx.source || 'PLUGGY_SYNC',
+                originalData: tx.originalData || {
                     accountName: tx._accountName,
                     merchant: tx.merchant
                 }
             };
 
-            // Adicionar lógica de classificação inteligente aqui se necessário
-            // Por enquanto, salva direto
-            
-            // Verificar duplicidade básica
-            const exists = dataManager.getExpenses().some(e => e.id === expense.id);
-            if (!exists) {
-                dataManager.addExpense(expense);
-                count++;
+            // Se for do Pluggy e for débito, geralmente é da conta corrente (débito)
+            // Se for do Pluggy e for crédito (em um contexto de despesa), pode ser estorno ou cartão
+            // Mas o Pluggy separa por tipo de conta. Por enquanto, simplificamos.
+
+            if (isIncome) {
+                // Verificar duplicidade
+                const exists = dataManager.getIncomes().some(i => i.id === normalizedTx.id);
+                if (!exists) {
+                    dataManager.addIncome(normalizedTx);
+                    incomeCount++;
+                }
+            } else {
+                // Verificar duplicidade
+                const exists = dataManager.getExpenses().some(e => e.id === normalizedTx.id);
+                if (!exists) {
+                    dataManager.addExpense(normalizedTx);
+                    expenseCount++;
+                }
             }
         });
 
-        if (count > 0) {
-            showNotification(`${count} novas transações importadas!`, 'success');
+        if (expenseCount > 0 || incomeCount > 0) {
+            let msg = '';
+            if (expenseCount > 0) msg += `${expenseCount} despesas `;
+            if (incomeCount > 0) msg += `${msg ? 'e ' : ''}${incomeCount} receitas `;
+            showNotification(`${msg}importadas com sucesso!`, 'success');
+        } else {
+            showNotification('Nenhuma transação nova para importar.', 'info');
         }
     }
 }

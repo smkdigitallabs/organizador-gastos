@@ -318,17 +318,11 @@ export class SmartAutoSave {
         } else if (dataManager && dataManager.generateDataHash) {
             // Usar hash para detectar mudanças
             const currentHash = dataManager.generateDataHash();
-            const lastHash = localStorage.getItem('lastAutoSaveHash');
-            // Nota: DataManager não parece salvar lastAutoSaveHash, mas usa lastDataHash internamente.
-            // Se DataManager.autoSave() verifica mudanças, podemos apenas retornar true e deixar DataManager decidir?
-            // Mas DataManager.autoSave só salva se mudar.
-            // Aqui estamos decidindo SE chamamos DataManager.autoSave.
-            // O DataManager.generateDataHash retorna o hash atual.
-            // Se não temos acesso ao hash anterior (que está dentro do DataManager), 
-            // talvez devêssemos sempre tentar salvar e deixar o DataManager filtrar?
-            // Ou melhor, o DataManager.autoSave() já faz a verificação.
-            // Então podemos retornar true aqui para delegar a verificação ao DataManager.
-            return true; 
+            const storageKey = dataManager.getStorageKey('lastAutoSaveHash');
+            const lastHash = localStorage.getItem(storageKey);
+            
+            // Se o hash mudou, há alterações
+            return currentHash !== lastHash;
         } else {
             // Assumir que sempre há mudanças se não há callback
             return true;

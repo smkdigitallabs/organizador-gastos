@@ -436,33 +436,37 @@ export class DataManager {
 
     // Carregar dados iniciais e aplicar migrações se necessário
     loadInitialData() {
+        const appDataKey = this.getStorageKey('appData');
         let storedData = {};
+        
         try {
-            storedData = JSON.parse(localStorage.getItem('appData')) || {};
+            const rawData = this.useFallback ? 
+                localStorage.getItem(appDataKey) : 
+                safeStorage.getItem(appDataKey);
+            
+            storedData = JSON.parse(rawData || '{}');
         } catch (e) {
-            console.error("Erro ao parsear dados do localStorage, iniciando com dados vazios.", e);
+            console.error("Erro ao carregar dados iniciais, iniciando com dados vazios.", e);
             storedData = {};
         }
 
-        const storedVersion = storedData.version || '1.0'; // Assume 1.0 se não houver versão
+        const storedVersion = storedData.version || '1.0';
 
         // Aplicar migrações se a versão armazenada for mais antiga
-        if (storedVersion !== this.CURRENT_DATA_VERSION) {
+        if (storedVersion !== this.CURRENT_DATA_VERSION && storedData.version) {
             console.log(`Migrando dados da versão ${storedVersion} para ${this.CURRENT_DATA_VERSION}`);
             storedData = this.migrateData(storedData, storedVersion, this.CURRENT_DATA_VERSION);
-            // Salvar os dados migrados de volta no localStorage
-            localStorage.setItem('appData', JSON.stringify(storedData));
+            // Salvar os dados migrados de volta
+            if (this.useFallback) {
+                localStorage.setItem(appDataKey, JSON.stringify(storedData));
+            } else {
+                safeStorage.setJSON(appDataKey, storedData);
+            }
         }
 
-        // Carregar os dados para os respectivos localStorage.items
-        localStorage.setItem('expensesData', JSON.stringify(storedData.expensesData || []));
-        localStorage.setItem('incomeData', JSON.stringify(storedData.incomeData || []));
-        localStorage.setItem('cards', JSON.stringify(storedData.cards || []));
-        localStorage.setItem('income-categories', JSON.stringify(storedData.categories?.income || []));
-        localStorage.setItem('expense-categories', JSON.stringify(storedData.categories?.expense || []));
-        localStorage.setItem('achievements', JSON.stringify(storedData.achievements || []));
-        if (storedData.monthlyGoal) {
-            localStorage.setItem('monthlyExpenseGoal', storedData.monthlyGoal);
+        // Se tivermos um blob de dados, restaurar nos campos individuais
+        if (storedData.expensesData || storedData.incomeData || storedData.cards) {
+            this.restoreDataSafely(storedData);
         }
     }
 
@@ -490,29 +494,19 @@ export class DataManager {
     generateDataHash() {
         try {
             const currentData = {
-                expensesData: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('expensesData') || '[]') : 
-                    safeStorage.getJSON('expensesData', []),
-                incomeData: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('incomeData') || '[]') : 
-                    safeStorage.getJSON('incomeData', []),
-                cards: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('cards') || '[]') : 
-                    safeStorage.getJSON('cards', []),
+                expensesData: this.getExpenses(),
+                incomeData: this.getIncomes(),
+                cards: this.getCards(),
                 categories: {
-                    income: this.useFallback ? 
-                        JSON.parse(localStorage.getItem('income-categories') || '[]') : 
-                        safeStorage.getJSON('income-categories', []),
-                    expense: this.useFallback ? 
-                        JSON.parse(localStorage.getItem('expense-categories') || '[]') : 
-                        safeStorage.getJSON('expense-categories', [])
+                    income: this.getIncomeCategories(),
+                    expense: this.getExpenseCategories()
                 },
                 achievements: this.useFallback ? 
-                    JSON.parse(localStorage.getItem('achievements') || '[]') : 
-                    safeStorage.getJSON('achievements', []),
+                    JSON.parse(localStorage.getItem(this.getStorageKey('achievements')) || '[]') : 
+                    safeStorage.getJSON(this.getStorageKey('achievements'), []),
                 monthlyGoal: this.useFallback ? 
-                    localStorage.getItem('monthlyExpenseGoal') : 
-                    safeStorage.getItem('monthlyExpenseGoal'),
+                    localStorage.getItem(this.getStorageKey('monthlyExpenseGoal')) : 
+                    safeStorage.getItem(this.getStorageKey('monthlyExpenseGoal')),
                 timestamp: Date.now()
             };
             
@@ -556,11 +550,11 @@ export class DataManager {
                         expense: this.getExpenseCategories()
                     },
                     achievements: this.useFallback ? 
-                        JSON.parse(localStorage.getItem('achievements') || '[]') : 
-                        safeStorage.getJSON('achievements', []),
+                        JSON.parse(localStorage.getItem(this.getStorageKey('achievements')) || '[]') : 
+                        safeStorage.getJSON(this.getStorageKey('achievements'), []),
                     monthlyGoal: this.useFallback ? 
-                        localStorage.getItem('monthlyExpenseGoal') : 
-                        safeStorage.getItem('monthlyExpenseGoal'),
+                        localStorage.getItem(this.getStorageKey('monthlyExpenseGoal')) : 
+                        safeStorage.getItem(this.getStorageKey('monthlyExpenseGoal')),
                     timestamp: new Date().toISOString(),
                     hash: currentHash,
                     version: this.CURRENT_DATA_VERSION
@@ -617,7 +611,8 @@ export class DataManager {
 
     // Salvar versão do auto-save
     saveAutoSaveVersion(data) {
-        let autoSaveHistory = JSON.parse(localStorage.getItem('autoSaveHistory') || '[]');
+        const historyKey = this.getStorageKey('autoSaveHistory');
+        let autoSaveHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
         
         // Adicionar nova versão
         autoSaveHistory.unshift({
@@ -632,12 +627,13 @@ export class DataManager {
             autoSaveHistory = autoSaveHistory.slice(0, this.maxAutoSaveVersions);
         }
         
-        localStorage.setItem('autoSaveHistory', JSON.stringify(autoSaveHistory));
+        localStorage.setItem(historyKey, JSON.stringify(autoSaveHistory));
     }
 
     // Obter versões do auto-save
     getAutoSaveVersions() {
-        return JSON.parse(localStorage.getItem('autoSaveHistory') || '[]');
+        const historyKey = this.getStorageKey('autoSaveHistory');
+        return JSON.parse(localStorage.getItem(historyKey) || '[]');
     }
 
     // Restaurar versão específica do auto-save
@@ -649,17 +645,35 @@ export class DataManager {
             const data = version.data;
             
             // Restaurar dados no localStorage
-            localStorage.setItem('expensesData', JSON.stringify(data.expensesData || []));
-            localStorage.setItem('incomeData', JSON.stringify(data.incomeData || []));
-            localStorage.setItem('cards', JSON.stringify(data.cards || []));
-            localStorage.setItem('income-categories', JSON.stringify(data.categories?.income || []));
-            localStorage.setItem('expense-categories', JSON.stringify(data.categories?.expense || []));
-            localStorage.setItem('achievements', JSON.stringify(data.achievements || []));
-            if (data.monthlyGoal) {
-                localStorage.setItem('monthlyExpenseGoal', data.monthlyGoal);
+            this.saveExpenses(data.expensesData || []);
+            this.saveIncomes(data.incomeData || []);
+            this.saveCards(data.cards || []);
+            this.saveIncomeCategories(data.categories?.income || []);
+            this.saveExpenseCategories(data.categories?.expense || []);
+            
+            const achievementsKey = this.getStorageKey('achievements');
+            if (this.useFallback) {
+                localStorage.setItem(achievementsKey, JSON.stringify(data.achievements || []));
+            } else {
+                safeStorage.setJSON(achievementsKey, data.achievements || []);
             }
+
+            if (data.monthlyGoal) {
+                const goalKey = this.getStorageKey('monthlyExpenseGoal');
+                if (this.useFallback) {
+                    localStorage.setItem(goalKey, data.monthlyGoal);
+                } else {
+                    safeStorage.setItem(goalKey, data.monthlyGoal);
+                }
+            }
+            
             // Restaurar a chave 'appData' também
-            localStorage.setItem('appData', JSON.stringify(data));
+            const appDataKey = this.getStorageKey('appData');
+            if (this.useFallback) {
+                localStorage.setItem(appDataKey, JSON.stringify(data));
+            } else {
+                safeStorage.setJSON(appDataKey, data);
+            }
             
             showNotification('Dados restaurados com sucesso!', 'success');
             
@@ -677,7 +691,8 @@ export class DataManager {
 
     // Limpar histórico de auto-save
     clearAutoSaveHistory() {
-        localStorage.removeItem('autoSaveHistory');
+        const historyKey = this.getStorageKey('autoSaveHistory');
+        localStorage.removeItem(historyKey);
         showNotification('Histórico de auto-save limpo!', 'info');
     }
 
