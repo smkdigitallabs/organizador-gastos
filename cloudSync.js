@@ -29,12 +29,40 @@ export class CloudSync {
                 script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
                 script.crossOrigin = 'anonymous';
                 script.onload = () => this.configureClerk();
+                script.onerror = () => {
+                    console.error('[CLOUD]: Failed to load Clerk script');
+                    this.showErrorOverlay('Falha ao carregar o sistema de autenticação. Verifique sua conexão.');
+                };
                 document.head.appendChild(script);
             } else {
                 this.configureClerk();
             }
         } catch (error) {
             console.error('[CLOUD]: Failed to load Clerk:', error);
+            this.showErrorOverlay('Erro inesperado ao inicializar a nuvem.');
+        }
+    }
+
+    showErrorOverlay(message) {
+        const overlay = this.ensureOverlay();
+        overlay.innerHTML = `
+            <div style="text-align: center; color: #e74c3c; padding: 20px; max-width: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px;"></i>
+                <h2 style="margin-bottom: 10px;">Erro de Inicialização</h2>
+                <p style="color: #666; margin-bottom: 20px;">${message}</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="window.location.reload()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 4px;">Tentar Novamente</button>
+                    <button id="continue-offline-btn" style="padding: 10px 20px; cursor: pointer; background: #95a5a6; color: white; border: none; border-radius: 4px;">Usar Offline</button>
+                </div>
+            </div>
+        `;
+        
+        const offlineBtn = document.getElementById('continue-offline-btn');
+        if (offlineBtn) {
+            offlineBtn.onclick = () => {
+                overlay.style.display = 'none';
+                this.updateUIStatus('offline');
+            };
         }
     }
 
@@ -44,14 +72,6 @@ export class CloudSync {
             overlay = document.createElement('div');
             overlay.id = 'auth-loading-overlay';
             overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f2f5; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: "Segoe UI", sans-serif;';
-            overlay.innerHTML = `
-                <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
-                <h2 style="color: #2c3e50;">Verificando Autenticação...</h2>
-                <p style="color: #7f8c8d;">Por favor, aguarde.</p>
-                <style>
-                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style>
-            `;
             document.body.appendChild(overlay);
         }
         return overlay;
@@ -66,6 +86,7 @@ export class CloudSync {
         
         if (!publishableKey) {
             console.error('[CLOUD]: VITE_CLERK_PUBLISHABLE_KEY não definida!');
+            this.showErrorOverlay('Configuração de nuvem ausente (Publishable Key). Por favor, verifique as variáveis de ambiente.');
             this.updateUIStatus('error');
             return;
         }
