@@ -11,73 +11,6 @@
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-body.dark-mode {
-    --background-color: #121212;
-    --text-color: #e0e0e0;
-    --card-bg: #1e1e1e;
-    --border-color: #333333;
-    --hover-bg: #2d2d2d;
-    --primary-color: #4dabf7;
-    --secondary-color: #74c0fc;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-body.dark-mode .side-nav {
-    background-color: #1e1e1e;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-    border-right: 1px solid var(--border-color);
-}
-
-body.dark-mode .side-nav a {
-    color: #b0b0b0;
-}
-
-body.dark-mode .side-nav a:hover {
-    background-color: var(--hover-bg) !important;
-    color: var(--primary-color) !important;
-}
-
-body.dark-mode .card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
-}
-
-body.dark-mode input, 
-body.dark-mode select {
-    background-color: #252525;
-    color: #e0e0e0;
-    border: 1px solid #404040;
-}
-
-body.dark-mode .modal-content {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-}
-
-body.dark-mode .tutorial-tooltip {
-    background: #1e1e1e;
-    color: #e0e0e0;
-    border: 1px solid var(--primary-color);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-}
-
-body.dark-mode .tutorial-content h4 {
-    color: var(--primary-color);
-}
-
-body.dark-mode .tutorial-actions {
-    border-top-color: #333;
-}
-
-body.dark-mode .tutorial-prev {
-    color: #b0b0b0;
-}
-
-body.dark-mode .tutorial-prev:hover {
-    background: #2d2d2d;
-}
-
 * {
     margin: 0;
     padding: 0;
@@ -93,7 +26,7 @@ body {
 .side-nav {
     width: var(--nav-width);
     height: 100vh;
-    background-color: white;
+    background-color: var(--card-bg);
     position: fixed;
     left: 0;
     top: 0;
@@ -134,15 +67,6 @@ body {
     color: var(--primary-color);
     background-color: var(--background-color);
     transform: scale(1.05);
-}
-
-.dark-mode-toggle {
-    cursor: pointer;
-    color: var(--text-color);
-}
-
-body.dark-mode .dark-mode-toggle {
-    color: #f1c40f; /* Cor amarela para o sol */
 }
 
 /* Estilização para melhorar a aparência do tooltip nativo */
@@ -207,7 +131,7 @@ body.dark-mode .dark-mode-toggle {
 
 .tutorial-tooltip {
     position: absolute;
-    background: white;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -216,6 +140,7 @@ body.dark-mode .dark-mode-toggle {
     opacity: 0;
     transform: translateY(10px);
     transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
 }
 
 .tutorial-content h4 {
@@ -317,7 +242,7 @@ body.dark-mode .dark-mode-toggle {
 }
 
 header {
-    background-color: white;
+    background-color: var(--card-bg);
     padding: 15px;
     border-radius: 10px;
     margin-bottom: 20px;
@@ -334,7 +259,7 @@ header {
     display: flex;
     gap: 1rem;
     align-items: center;
-    background-color: white;
+    background-color: var(--card-bg);
     padding: 0.75rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -350,10 +275,11 @@ header {
 .month-selector select,
 .month-selector input {
     padding: 0.5rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
-    background-color: white;
+    background-color: var(--card-bg);
+    color: var(--text-color);
 }
 
 .month-selector select {
@@ -397,11 +323,12 @@ nav a.active {
 }
 
 .card {
-    background: white;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 10px;
     position: relative;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
 }
 
 .card h3 {
@@ -426,19 +353,20 @@ nav a.active {
 }
 
 .fixed-expenses {
-    background: white;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
 }
 
-/* Novo estilo para despesas variáveis */
 .variable-expenses {
-    background: white;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     margin-top: 20px;
+    border: 1px solid var(--border-color);
 }
 
 .variable-expenses h3 {
@@ -451,10 +379,39 @@ nav a.active {
 }
 
 .settings-container {
-    background: white;
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
+}
+
+.expense-form, .income-form, .wallet-form {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.auth-header {
+    background: var(--card-bg);
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
 }
 
 .settings-section {
@@ -494,53 +451,87 @@ nav a.active {
     border-radius: 5px;
 }
 
-.save-button {
+#auth-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    transition: opacity 0.3s ease;
+}
+
+.auth-error-container {
+    text-align: center;
+    color: #e74c3c;
+    padding: 20px;
+    max-width: 400px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.auth-error-container p {
+    color: var(--text-color);
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+.auth-error-container h2 {
+    color: #e74c3c !important;
+    margin-bottom: 10px;
+}
+
+.auth-error-container .btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.auth-error-container button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.auth-error-container .btn-retry {
+    background: var(--primary-color);
+    color: white;
+}
+
+.auth-error-container .btn-offline {
+    background: #95a5a6;
+    color: white;
+}
+
+.auth-error-container i {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.btn-primary {
     background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
-body.dark-mode .month-selector,
-body.dark-mode header,
-body.dark-mode .fixed-expenses,
-body.dark-mode .variable-expenses,
-body.dark-mode .settings-container {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
-}
-
-body.dark-mode .month-selector select,
-body.dark-mode .month-selector input {
-    background-color: #252525;
-    color: #e0e0e0;
-    border-color: #404040;
-}
-
-body.dark-mode .card i {
-    color: #333;
-}
-
-body.dark-mode .save-button {
-    background-color: var(--primary-color);
-}
-
-body.dark-mode .save-button:hover {
+.btn-primary:hover {
     background-color: var(--secondary-color);
+    transform: translateY(-1px);
 }
 
-body.dark-mode .help-btn {
-    background-color: #252525;
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
 
-body.dark-mode .help-btn:hover {
-    background-color: var(--primary-color);
-    color: white;
-}

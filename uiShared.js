@@ -209,57 +209,6 @@ export function setupCategoryDropdowns() {
     });
 }
 
-// Alternar Dark Mode
-export function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    const isDarkMode = document.body.classList.contains('dark-mode');
-    
-    // Usar dataManager para isolar a preferência de tema se disponível
-    if (dataManager && typeof dataManager.getStorageKey === 'function') {
-        localStorage.setItem(dataManager.getStorageKey('darkMode'), isDarkMode);
-    } else {
-        localStorage.setItem('darkMode', isDarkMode);
-    }
-    
-    // Atualizar ícones
-    updateDarkModeIcons(isDarkMode);
-}
-
-// Atualizar ícones do Dark Mode
-function updateDarkModeIcons(isDarkMode) {
-    const icons = document.querySelectorAll('.dark-mode-toggle i');
-    icons.forEach(icon => {
-        if (isDarkMode) {
-            icon.className = 'fas fa-sun';
-        } else {
-            icon.className = 'fas fa-moon';
-        }
-    });
-}
-
-// Inicializar Dark Mode
-export function initDarkMode() {
-    let isDarkMode = false;
-    
-    // Tentar obter preferência isolada
-    if (dataManager && typeof dataManager.getStorageKey === 'function') {
-        isDarkMode = localStorage.getItem(dataManager.getStorageKey('darkMode')) === 'true';
-    } else {
-        isDarkMode = localStorage.getItem('darkMode') === 'true';
-    }
-    
-    if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-    }
-    updateDarkModeIcons(isDarkMode);
-    
-    // Adicionar listeners aos botões
-    const buttons = document.querySelectorAll('.dark-mode-toggle');
-    buttons.forEach(btn => {
-        btn.onclick = toggleDarkMode;
-    });
-}
-
 // Registrar Service Worker
 export function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -278,7 +227,6 @@ export function registerServiceWorker() {
 // Função de inicialização compartilhada (chamada por todas as páginas)
 export function initSharedUI() {
     initNotificationSystem();
-    initDarkMode();
     registerServiceWorker();
     setupSideNavButtons();
     

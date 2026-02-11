@@ -1,6 +1,5 @@
 import { eventBus } from './eventBus.js';
 import { dataManager } from './dataManager.js';
-import { initDarkMode } from './uiShared.js';
 
 /**
  * Cloud Sync Service
@@ -46,13 +45,13 @@ export class CloudSync {
     showErrorOverlay(message) {
         const overlay = this.ensureOverlay();
         overlay.innerHTML = `
-            <div style="text-align: center; color: #e74c3c; padding: 20px; max-width: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px;"></i>
-                <h2 style="margin-bottom: 10px;">Erro de Inicialização</h2>
-                <p style="color: #666; margin-bottom: 20px;">${message}</p>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button onclick="window.location.reload()" style="padding: 10px 20px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 4px;">Tentar Novamente</button>
-                    <button id="continue-offline-btn" style="padding: 10px 20px; cursor: pointer; background: #95a5a6; color: white; border: none; border-radius: 4px;">Usar Offline</button>
+            <div class="auth-error-container">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2>Erro de Inicialização</h2>
+                <p>${message}</p>
+                <div class="btn-group">
+                    <button onclick="window.location.reload()" class="btn-retry">Tentar Novamente</button>
+                    <button id="continue-offline-btn" class="btn-offline">Usar Offline</button>
                 </div>
             </div>
         `;
@@ -122,10 +121,11 @@ export class CloudSync {
             const overlay = document.getElementById('auth-loading-overlay');
             if (overlay) {
                 overlay.innerHTML = `
-                    <div style="text-align: center; color: #e74c3c;">
+                    <div class="auth-error-container">
+                        <i class="fas fa-wifi-slash"></i>
                         <h2>Erro de Conexão</h2>
                         <p>Não foi possível verificar sua identidade.</p>
-                        <button onclick="window.location.reload()" style="padding: 10px 20px; cursor: pointer;">Tentar Novamente</button>
+                        <button onclick="window.location.reload()" class="btn-retry">Tentar Novamente</button>
                     </div>
                 `;
             }
